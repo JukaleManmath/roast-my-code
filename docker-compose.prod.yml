@@ -1,0 +1,26 @@
+services:
+  web:
+    volumes: []
+    restart: always
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+
+  worker:
+    volumes: []
+    restart: always
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+
+  frontend:
+    volumes: []
+    restart: always
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+
+  db:
+    ports: []
+
+  redis:
+    ports: []
