@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #0f0f0f;
+      color: #fff;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+    }
+    .header h1 { font-size: 22px; letter-spacing: -0.5px; }
+    .header .subtitle { color: #888; font-size: 12px; margin-top: 4px; }
+
+    .meta {
+      display: flex;
+      gap: 32px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #aaa;
+    }
+    .meta span { color: #fff; }
+
+    /* ── Score ── */
+    .score-block {
+      background: #f5f5f5;
+      border-left: 4px solid #0f0f0f;
+      padding: 16px 24px;
+      margin: 0 32px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .score-number {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .score-label { font-size: 12px; color: #666; margin-top: 4px; }
+    .score-summary { font-size: 13px; color: #333; }
+
+    /* ── Sections ── */
+    .section {
+      padding: 0 32px;
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+      color: #0f0f0f;
+    }
+
+    /* ── Issue cards ── */
+    .issue {
+      border: 1px solid #e8e8e8;
+      border-radius: 4px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+    .issue-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .issue-title { font-weight: 600; font-size: 13px; }
+    .issue-desc  { font-size: 12px; color: #444; }
+    .issue-hint  { font-size: 11px; color: #888; margin-top: 4px; font-family: monospace; }
+    .issue-agents { font-size: 11px; color: #888; margin-top: 4px; }
+
+    /* Severity badges — text only, no emoji (correction #21) */
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .badge-critical   { background: #fee2e2; color: #991b1b; }
+    .badge-warning    { background: #fef3c7; color: #92400e; }
+    .badge-suggestion { background: #dbeafe; color: #1e40af; }
+
+    /* ── Agent sections ── */
+    .agent-block {
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+    .agent-name {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .agent-role {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .agent-summary {
+      font-size: 12px;
+      color: #333;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      background: #f9f9f9;
+      border-radius: 3px;
+    }
+
+    /* ── Conflicts ── */
+    .conflict {
+      border: 1px solid #e8e8e8;
+      border-radius: 4px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .conflict-topic { font-weight: 600; margin-bottom: 8px; }
+    .conflict-position { font-size: 12px; color: #444; margin-bottom: 4px; }
+    .conflict-agent { font-weight: 600; color: #0f0f0f; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 40px;
+      padding: 16px 32px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 11px;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>RoastMyCode</h1>
+    <div class="subtitle">AI Code Review Report</div>
+    <div class="meta">
+      Language: <span>{{ review.language }}</span>
+      &nbsp;&nbsp;
+      {% if review.filename %}Filename: <span>{{ review.filename }}</span>&nbsp;&nbsp;{% endif %}
+      Date: <span>{{ review.completed_at|date:"N j, Y" }}</span>
+    </div>
+  </div>
+
+  <!-- Roast Score -->
+  <div class="score-block">
+    <div>
+      <div class="score-number">{{ score }}</div>
+      <div class="score-label">Roast Score (0 = clean, 100 = rewrite)</div>
+    </div>
+    <div class="score-summary">{{ summary }}</div>
+  </div>
+
+  <!-- Critical Issues -->
+  {% if critical %}
+  <div class="section">
+    <div class="section-title">[CRITICAL] Issues</div>
+    {% for issue in critical %}
+    <div class="issue">
+      <div class="issue-header">
+        <span class="badge badge-critical">[CRITICAL]</span>
+        <span class="issue-title">{{ issue.title }}</span>
+      </div>
+      <div class="issue-desc">{{ issue.description }}</div>
+      {% if issue.agents %}
+      <div class="issue-agents">Flagged by: {{ issue.agents|join:", " }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Warnings -->
+  {% if warnings %}
+  <div class="section">
+    <div class="section-title">[WARNING] Issues</div>
+    {% for issue in warnings %}
+    <div class="issue">
+      <div class="issue-header">
+        <span class="badge badge-warning">[WARNING]</span>
+        <span class="issue-title">{{ issue.title }}</span>
+      </div>
+      <div class="issue-desc">{{ issue.description }}</div>
+      {% if issue.agents %}
+      <div class="issue-agents">Flagged by: {{ issue.agents|join:", " }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Suggestions -->
+  {% if suggestions %}
+  <div class="section">
+    <div class="section-title">[SUGGESTION] Issues</div>
+    {% for issue in suggestions %}
+    <div class="issue">
+      <div class="issue-header">
+        <span class="badge badge-suggestion">[SUGGESTION]</span>
+        <span class="issue-title">{{ issue.title }}</span>
+      </div>
+      <div class="issue-desc">{{ issue.description }}</div>
+      {% if issue.agents %}
+      <div class="issue-agents">Flagged by: {{ issue.agents|join:", " }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Conflicts -->
+  {% if conflicts %}
+  <div class="section">
+    <div class="section-title">Agent Conflicts</div>
+    {% for conflict in conflicts %}
+    <div class="conflict">
+      <div class="conflict-topic">{{ conflict.topic }}</div>
+      {% for agent, position in conflict.positions.items %}
+      <div class="conflict-position">
+        <span class="conflict-agent">{{ agent|capfirst }}:</span> {{ position }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Per-Agent Results -->
+  {% if agents %}
+  <div class="section">
+    <div class="section-title">Per-Agent Reviews</div>
+    {% for agent in agents %}
+    <div class="agent-block">
+      <div class="agent-name">{{ agent.name|capfirst }}</div>
+      <div class="agent-role">{{ agent.label }}</div>
+      {% if agent.summary %}
+      <div class="agent-summary">{{ agent.summary }}</div>
+      {% endif %}
+      {% for issue in agent.issues %}
+      <div class="issue">
+        <div class="issue-header">
+          {% if issue.severity == 'critical' %}
+            <span class="badge badge-critical">[CRITICAL]</span>
+          {% elif issue.severity == 'warning' %}
+            <span class="badge badge-warning">[WARNING]</span>
+          {% else %}
+            <span class="badge badge-suggestion">[SUGGESTION]</span>
+          {% endif %}
+          <span class="issue-title">{{ issue.title }}</span>
+        </div>
+        <div class="issue-desc">{{ issue.description }}</div>
+        {% if issue.line_hint %}
+        <div class="issue-hint">{{ issue.line_hint }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>RoastMyCode &mdash; roastmycode.app/r/{{ review.share_slug }}</span>
+    <span>Generated {{ review.completed_at|date:"N j, Y" }}</span>
+  </div>
+
+</body>
+</html>

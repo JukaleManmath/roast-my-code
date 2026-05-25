@@ -193,3 +193,36 @@ MAX_UPLOAD_SIZE_BYTES = env.int('MAX_UPLOAD_SIZE_BYTES', default=102400)
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://localhost:3000',
 ])
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        # Suppress noisy Django internals — only show warnings and above
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Suppress noisy third-party libraries
+        'httpx': {'level': 'WARNING', 'propagate': True},
+        'httpcore': {'level': 'WARNING', 'propagate': True},
+    },
+}
