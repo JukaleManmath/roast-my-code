@@ -1,15 +1,13 @@
 import logging
 
-from django.conf import settings
 from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from ratelimit.decorators import ratelimit
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.export.pdf import generate_pdf
@@ -22,20 +20,10 @@ from .serializers import ReviewDetailSerializer, ReviewSerializer, SavedReviewSe
 logger = logging.getLogger(__name__)
 
 
-def _review_rate(group: str, request: Request) -> str:
-    """Return daily rate limit based on auth status."""
-    if request.user.is_authenticated:
-        return f'{settings.AUTHENTICATED_DAILY_LIMIT}/d'
-    return f'{settings.ANONYMOUS_DAILY_LIMIT}/d'
-
-
-@method_decorator(
-    ratelimit(key='user_or_ip', rate=_review_rate, method='POST', block=True),
-    name='dispatch',
-)
 class ReviewSubmitView(APIView):
     """POST /api/reviews/ — submit code for review."""
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    throttle_classes = (AnonRateThrottle, UserRateThrottle)
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def post(self, request: Request) -> Response:

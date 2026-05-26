@@ -1,0 +1,22 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <title>RoastMyCode</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#18181B"/>
+      <stop offset="100%" stop-color="#09090B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="200" height="200" rx="48" fill="url(#bg)"/>
+  <rect width="200" height="200" rx="48" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+
+  <!-- Left slash -->
+  <line x1="54"  y1="156" x2="90"  y2="44" stroke="white" stroke-width="18" stroke-linecap="round"/>
+  <!-- Right slash -->
+  <line x1="108" y1="156" x2="144" y2="44" stroke="white" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Orange alert dot -->
+  <circle cx="163" cy="42" r="18" fill="#F97316"/>
+  <line x1="163" y1="33" x2="163" y2="47" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="163" cy="53" r="2.5" fill="white"/>
+</svg>

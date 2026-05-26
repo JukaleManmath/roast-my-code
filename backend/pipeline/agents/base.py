@@ -3,8 +3,9 @@ import logging
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from django.db.models.expressions import RawSQL
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -25,15 +26,6 @@ AGENT_RESPONSE_SCHEMA = """
 """
 
 
-def build_llm() -> ChatGoogleGenerativeAI:
-    return ChatGoogleGenerativeAI(
-        model=settings.GEMINI_MODEL,
-        google_api_key=settings.GEMINI_API_KEY,
-        max_output_tokens=4096,   # correction #25 — explicit token limit
-        temperature=0.3,
-    )
-
-
 def call_agent(
     agent_name: str,
     system_prompt: str,
@@ -52,27 +44,32 @@ def call_agent(
     language  = state['language']
     filename  = state['filename']
 
-    llm = build_llm()
+    client = genai.Client(
+        api_key=settings.GEMINI_API_KEY,
+        http_options=types.HttpOptions(api_version='v1'),
+    )
 
-    human_content = (
+    # Merge system prompt into user content to avoid systemInstruction
+    # serialisation differences between v1 and v1beta.
+    full_prompt = (
+        f"{system_prompt}\n\n"
         f"Language: {language}\n"
         f"Filename: {filename or 'unknown'}\n\n"
         f"```\n{raw_code}\n```"
     )
 
-    messages = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=human_content),
-    ]
-
-    response = None
     try:
-        response = llm.invoke(messages)
-        verdict  = _parse_verdict(agent_name, response.content)
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=full_prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=4096,
+                temperature=0.3,
+            ),
+        )
+        verdict = _parse_verdict(agent_name, response.text)
 
-        # Check for truncation (correction #25)
-        finish_reason = (response.response_metadata or {}).get('finish_reason', '')
-        if finish_reason == 'MAX_TOKENS':
+        if response.candidates and response.candidates[0].finish_reason.name == 'MAX_TOKENS':
             logger.warning('Agent %s response truncated for review %s', agent_name, review_id)
             verdict['summary'] += ' [Note: response was truncated due to length]'
 
@@ -119,13 +116,11 @@ def _broadcast_agent_done(review_id: str, agent_name: str, verdict: dict) -> Non
 
     payload = {'event': 'agent_done', 'agent': agent_name, 'verdict': verdict}
 
-    # Persist to event_log for replay
-    try:
-        review = Review.objects.get(id=review_id)
-        review.event_log = review.event_log + [payload]
-        review.save(update_fields=['event_log'])
-    except Review.DoesNotExist:
-        pass
+    # Persist to event_log for replay.
+    # Use PostgreSQL's || operator so parallel agents don't overwrite each other.
+    Review.objects.filter(id=review_id).update(
+        event_log=RawSQL('event_log || %s::jsonb', [json.dumps([payload])])
+    )
 
     channel_layer = get_channel_layer()
     if channel_layer is None:

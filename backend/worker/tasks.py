@@ -1,7 +1,9 @@
+import json
 import logging
 from asgiref.sync import async_to_sync
 from celery import shared_task
 from channels.layers import get_channel_layer
+from django.db.models.expressions import RawSQL
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -97,10 +99,11 @@ def _broadcast(review_id: str, message: dict) -> None:
     """
     from apps.reviews.models import Review
 
-    # Persist to event_log — strip internal 'type' key before storing
+    # Persist to event_log — strip internal 'type' key before storing.
+    # Use PostgreSQL's || operator for an atomic append (no read-modify-write).
     payload = {k: v for k, v in message.items() if k != 'type'}
     Review.objects.filter(id=review_id).update(
-        event_log=_append_event(review_id, payload)
+        event_log=RawSQL('event_log || %s::jsonb', [json.dumps([payload])])
     )
 
     channel_layer = get_channel_layer()
@@ -112,11 +115,3 @@ def _broadcast(review_id: str, message: dict) -> None:
     )
 
 
-def _append_event(review_id: str, payload: dict) -> list:
-    """Fetch current event_log and append new payload."""
-    from apps.reviews.models import Review
-    try:
-        review = Review.objects.get(id=review_id)
-        return review.event_log + [payload]
-    except Review.DoesNotExist:
-        return [payload]

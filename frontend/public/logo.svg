@@ -1,0 +1,95 @@
+<svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg">
+  <title>RoastMyCode</title>
+  <desc>RoastMyCode — AI code review. // is how engineers talk about your code.</desc>
+
+  <defs>
+    <linearGradient id="badgeBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#18181B"/>
+      <stop offset="100%" stop-color="#09090B"/>
+    </linearGradient>
+
+    <!-- Subtle warm glow beneath badge -->
+    <radialGradient id="glowG" cx="50%" cy="100%" r="60%">
+      <stop offset="0%"   stop-color="#F97316" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#F97316" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- "CODE" text shimmer -->
+    <linearGradient id="codeShimmer" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#A1A1AA"/>
+      <stop offset="100%" stop-color="#71717A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Subtle ambient glow -->
+  <ellipse cx="340" cy="178" rx="120" ry="70" fill="url(#glowG)"/>
+
+  <!-- ── Icon badge 140x140 centered ─────────────────────────── -->
+  <g transform="translate(270, 28)">
+    <rect width="140" height="140" rx="32" fill="url(#badgeBg)"/>
+    <rect width="140" height="140" rx="32" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1.5"/>
+
+    <!-- Left slash of // -->
+    <line x1="36" y1="106" x2="62" y2="34" stroke="white" stroke-width="13" stroke-linecap="round"/>
+    <!-- Right slash of // -->
+    <line x1="72" y1="106" x2="98" y2="34" stroke="white" stroke-width="13" stroke-linecap="round"/>
+
+    <!-- Orange alert dot — top right -->
+    <circle cx="116" cy="30" r="12" fill="#F97316"/>
+    <!-- Exclamation inside dot -->
+    <line x1="116" y1="24" x2="116" y2="33" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="116" cy="37" r="1.5" fill="white"/>
+  </g>
+
+  <!-- ── Wordmark ─────────────────────────────────────────────── -->
+
+  <!-- "ROAST" — heavy condensed, full-bleed -->
+  <text
+    x="340" y="258"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+    font-size="100"
+    font-weight="900"
+    letter-spacing="-4"
+    fill="#09090B"
+  >ROAST</text>
+
+  <!-- Thin separator rule -->
+  <line x1="208" y1="270" x2="472" y2="270" stroke="#E4E4E7" stroke-width="1"/>
+
+  <!-- "MY CODE" row — mixed weights -->
+  <text
+    x="216" y="308"
+    text-anchor="start"
+    font-family="ui-monospace, 'JetBrains Mono', monospace"
+    font-size="32"
+    font-weight="300"
+    letter-spacing="6"
+    fill="#A1A1AA"
+  >MY</text>
+
+  <text
+    x="296" y="308"
+    text-anchor="start"
+    font-family="ui-monospace, 'JetBrains Mono', monospace"
+    font-size="32"
+    font-weight="700"
+    letter-spacing="6"
+    fill="#09090B"
+  >CODE</text>
+
+  <!-- Orange dot to end the wordmark -->
+  <circle cx="477" cy="294" r="5" fill="#F97316"/>
+
+  <!-- Tagline -->
+  <text
+    x="340" y="358"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="11"
+    font-weight="400"
+    letter-spacing="3.5"
+    fill="#A1A1AA"
+  >// WHERE YOUR CODE GETS CRITICIZED</text>
+
+</svg>

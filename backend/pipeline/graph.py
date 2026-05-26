@@ -24,29 +24,29 @@ def build_graph():
     """
     graph = StateGraph(ReviewState)
 
-    # Register nodes
-    graph.add_node('pragmatist', pragmatist_node)
-    graph.add_node('paranoid',   paranoid_node)
-    graph.add_node('minimalist', minimalist_node)
-    graph.add_node('optimizer',  optimizer_node)
-    graph.add_node('mentor',     mentor_node)
-    graph.add_node('synthesis',  synthesis_node)
+    # Register nodes — names must not clash with ReviewState keys (LangGraph constraint)
+    graph.add_node('pragmatist_agent', pragmatist_node)
+    graph.add_node('paranoid_agent',   paranoid_node)
+    graph.add_node('minimalist_agent', minimalist_node)
+    graph.add_node('optimizer_agent',  optimizer_node)
+    graph.add_node('mentor_agent',     mentor_node)
+    graph.add_node('synthesis_agent',  synthesis_node)
 
-    # Fan out — START to all 5 agents in parallel (correction #1)
-    graph.add_edge(START, 'pragmatist')
-    graph.add_edge(START, 'paranoid')
-    graph.add_edge(START, 'minimalist')
-    graph.add_edge(START, 'optimizer')
-    graph.add_edge(START, 'mentor')
+    # Fan out — START to all 5 agents in parallel
+    graph.add_edge(START, 'pragmatist_agent')
+    graph.add_edge(START, 'paranoid_agent')
+    graph.add_edge(START, 'minimalist_agent')
+    graph.add_edge(START, 'optimizer_agent')
+    graph.add_edge(START, 'mentor_agent')
 
     # Fan in — all 5 agents to synthesis
-    graph.add_edge('pragmatist', 'synthesis')
-    graph.add_edge('paranoid',   'synthesis')
-    graph.add_edge('minimalist', 'synthesis')
-    graph.add_edge('optimizer',  'synthesis')
-    graph.add_edge('mentor',     'synthesis')
+    graph.add_edge('pragmatist_agent', 'synthesis_agent')
+    graph.add_edge('paranoid_agent',   'synthesis_agent')
+    graph.add_edge('minimalist_agent', 'synthesis_agent')
+    graph.add_edge('optimizer_agent',  'synthesis_agent')
+    graph.add_edge('mentor_agent',     'synthesis_agent')
 
-    graph.add_edge('synthesis', END)
+    graph.add_edge('synthesis_agent', END)
 
     return graph.compile()
 

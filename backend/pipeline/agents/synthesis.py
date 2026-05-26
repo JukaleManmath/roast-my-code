@@ -3,10 +3,10 @@ import logging
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from django.db.models.expressions import RawSQL
+from google import genai
+from google.genai import types
 
-from pipeline.agents.base import build_llm, _broadcast_agent_done
 from pipeline.state import ReviewState
 
 logger = logging.getLogger(__name__)
@@ -39,26 +39,30 @@ Return ONLY valid JSON matching this schema — no markdown, no explanation:
 def synthesis_node(state: ReviewState) -> dict:
     review_id = state['review_id']
 
-    # Build a summary of all agent findings to feed into synthesis
-    agent_summaries = {}
-    for name in AGENT_NAMES:
-        agent_summaries[name] = state.get(name, {})
+    agent_summaries = {name: state.get(name, {}) for name in AGENT_NAMES}
 
-    human_content = (
+    full_prompt = (
+        f"{SYSTEM_PROMPT}\n\n"
         f"Language: {state['language']}\n"
         f"Filename: {state['filename'] or 'unknown'}\n\n"
         f"Agent reviews:\n{json.dumps(agent_summaries, indent=2)}"
     )
 
-    llm = build_llm()
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=human_content),
-    ]
+    client = genai.Client(
+        api_key=settings.GEMINI_API_KEY,
+        http_options=types.HttpOptions(api_version='v1'),
+    )
 
     try:
-        response = llm.invoke(messages)
-        verdict  = _parse_synthesis(response.content)
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=full_prompt,
+            config=types.GenerateContentConfig(
+                max_output_tokens=4096,
+                temperature=0.3,
+            ),
+        )
+        verdict = _parse_synthesis(response.text)
     except Exception as exc:
         logger.error('Synthesis failed for review %s: %s', review_id, exc)
         verdict = _error_synthesis(str(exc))
@@ -96,13 +100,9 @@ def _broadcast_synthesis_done(review_id: str, verdict: dict) -> None:
 
     payload = {'event': 'synthesis_done', 'verdict': verdict}
 
-    # Persist to event_log for replay
-    try:
-        review = Review.objects.get(id=review_id)
-        review.event_log = review.event_log + [payload]
-        review.save(update_fields=['event_log'])
-    except Review.DoesNotExist:
-        pass
+    Review.objects.filter(id=review_id).update(
+        event_log=RawSQL('event_log || %s::jsonb', [json.dumps([payload])])
+    )
 
     channel_layer = get_channel_layer()
     if channel_layer is None:

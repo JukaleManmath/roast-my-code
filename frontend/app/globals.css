@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas:   #FAF9F6;
+  --surface:  #FFFFFF;
+  --ink:      #1a1a1a;
+  --muted:    #6b6b6b;
+  --subtle:   #f0ede8;
+  --border:   rgba(0, 0, 0, 0.08);
+  --accent:   #1a1a1a;
+  --critical: #dc2626;
+  --warning:  #d97706;
+  --info:     #4f46e5;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+
+pre, code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(26, 26, 26, 0.12);
+}
+
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+@layer components {
+  /* Container */
+  .container-xl {
+    @apply max-w-[1200px] mx-auto px-6 sm:px-12;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-surface rounded-2xl border border-black/[0.06] shadow-card;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply bg-ink text-white font-medium px-6 py-3 rounded-xl
+           transition-all duration-150 hover:opacity-85 active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-subtle text-ink font-medium px-6 py-3 rounded-xl
+           transition-all duration-150 hover:bg-black/[0.08] active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply text-muted hover:text-ink px-4 py-2 rounded-lg
+           transition-colors duration-150;
+  }
+
+  /* Input */
+  .input {
+    @apply bg-white border border-black/[0.10] rounded-xl px-4 py-3 text-ink
+           placeholder:text-muted/60 focus:border-ink/30 focus:ring-0 focus:outline-none
+           transition-colors duration-150 w-full text-sm;
+  }
+
+  /* Badges */
+  .badge-critical   { @apply text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100; }
+  .badge-warning    { @apply text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100; }
+  .badge-suggestion { @apply text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100; }
+
+  /* Shimmer skeleton */
+  .shimmer {
+    @apply rounded-lg;
+    background: linear-gradient(90deg, #f0ede8 0%, #e8e4de 50%, #f0ede8 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* Section spacing */
+  .section {
+    @apply py-24 sm:py-32;
+  }
+
+  /* Eyebrow label */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-muted;
+  }
+}
