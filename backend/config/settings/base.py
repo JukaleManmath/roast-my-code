@@ -184,10 +184,11 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-# Gemini
-GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
-GEMINI_MODEL = env('GEMINI_MODEL', default='gemini-1.5-flash')
+# Groq
+GROQ_API_KEY = env('GROQ_API_KEY', default='')
+GROQ_MODEL = env('GROQ_MODEL', default='llama-3.3-70b-versatile')
 
 # GitHub
 GITHUB_TOKEN = env('GITHUB_TOKEN', default='')

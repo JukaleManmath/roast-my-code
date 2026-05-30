@@ -23,8 +23,8 @@ djangorestframework-simplejwt==5.3.1
 langgraph==0.2.28
 langchain-core==0.2.39
 
-# Gemini SDK (new google-genai package, uses v1 API)
-google-genai==1.16.0
+# Groq SDK
+groq==0.13.1
 
 # GitHub integration
 PyGithub==2.3.0

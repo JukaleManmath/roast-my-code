@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { clsx } from 'clsx'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import type { AgentResult } from '@/lib/api'
 
 const AGENT_META: Record<string, { label: string; description: string }> = {
@@ -19,63 +20,96 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ name, result, loading }: AgentCardProps) {
+  const [expanded, setExpanded] = useState(false)
   const meta = AGENT_META[name] ?? { label: name, description: '' }
   const done = !!result
 
+  const counts = done && result?.issues ? {
+    critical:   result.issues.filter(i => i.severity === 'critical').length,
+    warning:    result.issues.filter(i => i.severity === 'warning').length,
+    suggestion: result.issues.filter(i => !i.severity || i.severity === 'suggestion').length,
+  } : null
+
   return (
-    <div className={clsx('card p-5 transition-all duration-300', done ? 'animate-slide-up' : 'opacity-50')}>
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <p className="text-sm font-semibold text-ink">{meta.label}</p>
-          <p className="text-xs text-muted mt-0.5">{meta.description}</p>
+    <div className={clsx(
+      'card transition-all duration-300',
+      done ? 'animate-slide-up' : 'opacity-50',
+    )}>
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-ink">{meta.label}</p>
+            <p className="text-xs text-muted mt-0.5">{meta.description}</p>
+          </div>
+          {loading && !done && <Loader2 size={15} className="text-muted animate-spin shrink-0 mt-0.5" />}
+          {done    && <CheckCircle2 size={15} className="text-ink/30 shrink-0 mt-0.5" />}
         </div>
-        {loading && !done && <Loader2 size={15} className="text-muted animate-spin shrink-0 mt-0.5" />}
-        {done    && <CheckCircle2 size={15} className="text-ink/40 shrink-0 mt-0.5" />}
+
+        {/* Skeleton */}
+        {!done && (
+          <div className="space-y-2 mt-4">
+            <div className="h-3 shimmer w-4/5" />
+            <div className="h-3 shimmer w-3/5" />
+          </div>
+        )}
+
+        {/* Summary + count badges */}
+        {done && (
+          <div className="mt-3">
+            {result?.summary && (
+              <p className="text-sm text-muted leading-relaxed">{result.summary}</p>
+            )}
+            {counts && (counts.critical + counts.warning + counts.suggestion) > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {counts.critical   > 0 && <span className="badge-critical">{counts.critical} Critical</span>}
+                {counts.warning    > 0 && <span className="badge-warning">{counts.warning} Warning</span>}
+                {counts.suggestion > 0 && <span className="badge-suggestion">{counts.suggestion} Note</span>}
+              </div>
+            )}
+            {done && (!result?.issues || result.issues.length === 0) && (
+              <p className="text-sm text-muted italic mt-2">No issues found.</p>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Skeleton */}
-      {!done && (
-        <div className="space-y-2">
-          <div className="h-3 shimmer w-4/5" />
-          <div className="h-3 shimmer w-3/5" />
-          <div className="h-3 shimmer w-2/3" />
-        </div>
-      )}
-
-      {/* Summary */}
-      {done && result?.summary && (
-        <p className="text-sm text-muted leading-relaxed mb-4">{result.summary}</p>
-      )}
-
-      {/* Issues */}
+      {/* Expand toggle */}
       {done && result?.issues && result.issues.length > 0 && (
-        <ul className="space-y-3">
-          {result.issues.map((issue, i) => (
-            <li key={i} className="flex items-start gap-2.5">
-              <span className={clsx('shrink-0 mt-0.5', {
-                'badge-critical':   issue.severity === 'critical',
-                'badge-warning':    issue.severity === 'warning',
-                'badge-suggestion': issue.severity === 'suggestion' || !issue.severity,
-              })}>
-                {issue.severity === 'critical' ? 'Critical' : issue.severity === 'warning' ? 'Warning' : 'Note'}
-              </span>
-              <div>
-                <p className="text-sm font-medium text-ink">{issue.title}</p>
-                {issue.description && (
-                  <p className="text-xs text-muted mt-0.5 leading-relaxed">{issue.description}</p>
-                )}
-                {issue.line_hint && (
-                  <code className="text-xs text-muted/70 font-mono mt-1 block">{issue.line_hint}</code>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+        <>
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="w-full flex items-center justify-between px-5 py-2.5 border-t border-black/[0.04] text-xs text-muted hover:text-ink hover:bg-subtle/50 transition-colors"
+          >
+            <span>{expanded ? 'Hide issues' : `View ${result.issues.length} issue${result.issues.length !== 1 ? 's' : ''}`}</span>
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
 
-      {done && (!result?.issues || result.issues.length === 0) && (
-        <p className="text-sm text-muted italic">No issues found.</p>
+          {expanded && (
+            <ul className="px-5 pb-5 pt-4 space-y-3 border-t border-black/[0.04]">
+              {result.issues.map((issue, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className={clsx('shrink-0 mt-0.5', {
+                    'badge-critical':   issue.severity === 'critical',
+                    'badge-warning':    issue.severity === 'warning',
+                    'badge-suggestion': issue.severity === 'suggestion' || !issue.severity,
+                  })}>
+                    {issue.severity === 'critical' ? 'Critical' : issue.severity === 'warning' ? 'Warning' : 'Note'}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-ink">{issue.title}</p>
+                    {issue.description && (
+                      <p className="text-xs text-muted mt-0.5 leading-relaxed">{issue.description}</p>
+                    )}
+                    {issue.line_hint && (
+                      <code className="text-xs text-muted/70 font-mono mt-1 block">{issue.line_hint}</code>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )

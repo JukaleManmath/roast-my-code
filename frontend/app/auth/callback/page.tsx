@@ -50,7 +50,7 @@ export default function AuthCallbackPage() {
       .then((data) => {
         localStorage.setItem('access_token',  data.access)
         localStorage.setItem('refresh_token', data.refresh)
-        router.replace('/dashboard')
+        router.replace('/')
       })
       .catch((err: Error) => {
         setError(err.message)

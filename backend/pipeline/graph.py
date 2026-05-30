@@ -17,10 +17,10 @@ def build_graph():
     Build and compile the LangGraph review pipeline.
 
     Topology:
-        START → [pragmatist, paranoid, minimalist, optimizer, mentor] → synthesis → END
+        START → pragmatist → paranoid → minimalist → optimizer → mentor → synthesis → END
 
-    All five agents fan out in parallel from START.
-    Synthesis waits for all five before running.
+    Agents run sequentially to respect Groq free-tier TPM limits and give the
+    frontend a live one-card-at-a-time update experience.
     """
     graph = StateGraph(ReviewState)
 
@@ -32,18 +32,14 @@ def build_graph():
     graph.add_node('mentor_agent',     mentor_node)
     graph.add_node('synthesis_agent',  synthesis_node)
 
-    # Fan out — START to all 5 agents in parallel
-    graph.add_edge(START, 'pragmatist_agent')
-    graph.add_edge(START, 'paranoid_agent')
-    graph.add_edge(START, 'minimalist_agent')
-    graph.add_edge(START, 'optimizer_agent')
-    graph.add_edge(START, 'mentor_agent')
-
-    # Fan in — all 5 agents to synthesis
-    graph.add_edge('pragmatist_agent', 'synthesis_agent')
-    graph.add_edge('paranoid_agent',   'synthesis_agent')
-    graph.add_edge('minimalist_agent', 'synthesis_agent')
-    graph.add_edge('optimizer_agent',  'synthesis_agent')
+    # Sequential chain — one agent at a time to stay within Groq free-tier TPM limits.
+    # Each agent completes and broadcasts before the next starts, giving the frontend
+    # a live "one card at a time" update experience.
+    graph.add_edge(START,              'pragmatist_agent')
+    graph.add_edge('pragmatist_agent', 'paranoid_agent')
+    graph.add_edge('paranoid_agent',   'minimalist_agent')
+    graph.add_edge('minimalist_agent', 'optimizer_agent')
+    graph.add_edge('optimizer_agent',  'mentor_agent')
     graph.add_edge('mentor_agent',     'synthesis_agent')
 
     graph.add_edge('synthesis_agent', END)

@@ -1,5 +1,5 @@
 import { Navbar } from '@/components/Navbar'
-import { SynthesisPanel } from '@/components/SynthesisPanel'
+import { SynthesisScoreCard, SynthesisIssuesPanel } from '@/components/SynthesisPanel'
 import { AgentCard } from '@/components/AgentCard'
 import { ShareButton } from '@/components/ShareButton'
 import { getReviewBySlug } from '@/lib/api'
@@ -64,16 +64,23 @@ export default async function SharePage({ params }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              <p className="eyebrow">Agent Reviews</p>
-              {AGENT_NAMES.map((name) => (
-                <AgentCard key={name} name={name} result={review.agent_results?.[name]} />
-              ))}
+          <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              <div className="lg:col-span-2 space-y-3">
+                <p className="eyebrow mb-3">Agent Reviews</p>
+                {AGENT_NAMES.map((name) => (
+                  <AgentCard key={name} name={name} result={review.agent_results?.[name]} />
+                ))}
+              </div>
+              <div className="lg:sticky lg:top-24">
+                <p className="eyebrow mb-3">Final Verdict</p>
+                <SynthesisScoreCard synthesis={review.synthesis} />
+              </div>
             </div>
+
             <div>
-              <p className="eyebrow mb-4">Final Verdict</p>
-              <SynthesisPanel synthesis={review.synthesis} />
+              <p className="eyebrow mb-4">Findings</p>
+              <SynthesisIssuesPanel synthesis={review.synthesis} />
             </div>
           </div>
         </div>

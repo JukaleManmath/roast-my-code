@@ -4,8 +4,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.db.models.expressions import RawSQL
-from google import genai
-from google.genai import types
+from groq import Groq
 
 from pipeline.state import ReviewState
 
@@ -41,28 +40,25 @@ def synthesis_node(state: ReviewState) -> dict:
 
     agent_summaries = {name: state.get(name, {}) for name in AGENT_NAMES}
 
-    full_prompt = (
-        f"{SYSTEM_PROMPT}\n\n"
+    user_content = (
         f"Language: {state['language']}\n"
         f"Filename: {state['filename'] or 'unknown'}\n\n"
         f"Agent reviews:\n{json.dumps(agent_summaries, indent=2)}"
     )
 
-    client = genai.Client(
-        api_key=settings.GEMINI_API_KEY,
-        http_options=types.HttpOptions(api_version='v1'),
-    )
+    client = Groq(api_key=settings.GROQ_API_KEY)
 
     try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=full_prompt,
-            config=types.GenerateContentConfig(
-                max_output_tokens=4096,
-                temperature=0.3,
-            ),
+        response = client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[
+                {'role': 'system', 'content': SYSTEM_PROMPT},
+                {'role': 'user',   'content': user_content},
+            ],
+            max_tokens=4096,
+            temperature=0.3,
         )
-        verdict = _parse_synthesis(response.text)
+        verdict = _parse_synthesis(response.choices[0].message.content)
     except Exception as exc:
         logger.error('Synthesis failed for review %s: %s', review_id, exc)
         verdict = _error_synthesis(str(exc))

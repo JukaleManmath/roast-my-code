@@ -4,8 +4,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 from django.db.models.expressions import RawSQL
-from google import genai
-from google.genai import types
+from groq import Groq
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ def call_agent(
     """
     Core agent runner. Called by every agent node.
 
-    1. Calls Gemini with the persona system prompt + code
+    1. Calls Groq with the persona system prompt + code
     2. Parses JSON response
     3. Broadcasts agent_done event over WebSocket
     4. Returns {agent_name: verdict}
@@ -44,32 +43,29 @@ def call_agent(
     language  = state['language']
     filename  = state['filename']
 
-    client = genai.Client(
-        api_key=settings.GEMINI_API_KEY,
-        http_options=types.HttpOptions(api_version='v1'),
-    )
+    client = Groq(api_key=settings.GROQ_API_KEY)
 
-    # Merge system prompt into user content to avoid systemInstruction
-    # serialisation differences between v1 and v1beta.
-    full_prompt = (
-        f"{system_prompt}\n\n"
+    user_content = (
         f"Language: {language}\n"
         f"Filename: {filename or 'unknown'}\n\n"
         f"```\n{raw_code}\n```"
     )
 
     try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=full_prompt,
-            config=types.GenerateContentConfig(
-                max_output_tokens=4096,
-                temperature=0.3,
-            ),
+        response = client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user',   'content': user_content},
+            ],
+            max_tokens=4096,
+            temperature=0.3,
         )
-        verdict = _parse_verdict(agent_name, response.text)
+        content = response.choices[0].message.content
+        finish_reason = response.choices[0].finish_reason
+        verdict = _parse_verdict(agent_name, content)
 
-        if response.candidates and response.candidates[0].finish_reason.name == 'MAX_TOKENS':
+        if finish_reason == 'length':
             logger.warning('Agent %s response truncated for review %s', agent_name, review_id)
             verdict['summary'] += ' [Note: response was truncated due to length]'
 
@@ -114,7 +110,7 @@ def _broadcast_agent_done(review_id: str, agent_name: str, verdict: dict) -> Non
     """Send agent_done event to the WebSocket group and persist to event_log."""
     from apps.reviews.models import Review
 
-    payload = {'event': 'agent_done', 'agent': agent_name, 'verdict': verdict}
+    payload = {'event': 'agent_done', 'agent': agent_name, 'result': verdict}
 
     # Persist to event_log for replay.
     # Use PostgreSQL's || operator so parallel agents don't overwrite each other.

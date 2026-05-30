@@ -1,6 +1,6 @@
 # RoastMyCode
 
-A multi-agent code review platform. Paste code, upload a file, or link a GitHub URL — five parallel AI agents, each embodying a distinct senior engineer persona, independently tear your code apart and stream their verdicts live. A Synthesis Agent reconciles their findings into a severity-ranked verdict with a 0–100 roast score.
+A multi-agent code review platform. Paste code, upload a file, or link a GitHub URL — five AI agents, each embodying a distinct senior engineer persona, independently tear your code apart and stream their verdicts live. A Synthesis Agent reconciles their findings into a severity-ranked verdict with a 0–100 roast score.
 
 **Contents**
 
@@ -29,7 +29,7 @@ The result is a 0–100 roast score, a severity-ranked issue list, a downloadabl
 ## How It Works
 
 1. **Submit** — paste code, upload a file (up to 100KB), or provide a GitHub URL (single file or best file auto-selected from a repo)
-2. **Watch** — five agents run in parallel and stream their verdicts live over WebSocket as each one finishes
+2. **Watch** — five agents run sequentially and stream their verdicts live over WebSocket as each one finishes
 3. **Read** — the Synthesis Agent merges findings, marks issues agreed on by 2+ agents as Critical, and surfaces explicit conflicts
 4. **Export** — download a PDF report or copy a permanent public share link
 
@@ -56,18 +56,15 @@ Browser
   │                    Celery Task (Redis broker)
   │                        │
   │                   LangGraph Graph
-  │                   ┌────┴────┐
-  │              fan-out (parallel)
-  │         ┌──────────────────────────┐
-  │    Pragmatist  Paranoid  Minimalist  Optimizer  Mentor
-  │         └──────────────────────────┘
+  │              (sequential — one agent at a time)
+  │    Pragmatist → Paranoid → Minimalist → Optimizer → Mentor
   │                        │
   │                   Synthesis Agent
   │                        │
   └── WebSocket ◄── Django Channels (Redis channel layer)
 ```
 
-Every agent broadcasts its verdict to the WebSocket group the moment it finishes, before the others complete. The frontend renders each agent card as it arrives. Synthesis runs after all five and sends the final verdict.
+Each agent broadcasts its verdict the moment it finishes. The frontend renders each agent card as it arrives — one by one in real time. Synthesis runs after all five and sends the final verdict.
 
 ### Request Lifecycle
 
@@ -85,8 +82,8 @@ WebSocket ws/reviews/{id}/
 Celery worker
   → status: running
   → LangGraph graph.invoke()
-  → 5 agents fan out in parallel
-  → Each agent: calls Gemini, parses JSON, broadcasts agent_done
+  → 5 agents run sequentially
+  → Each agent: calls Groq, parses JSON, broadcasts agent_done
   → Synthesis: merges results, broadcasts synthesis_done + done
   → status: done, completed_at set
 ```
@@ -99,13 +96,9 @@ raw_code + language + filename
       ▼
 ReviewState (TypedDict)
       │
-   ┌──┴────────────────────────────────────────┐
-   ▼          ▼           ▼          ▼          ▼
-pragmatist  paranoid  minimalist  optimizer   mentor
-   │          │           │          │          │
-   └──────────┴───────────┴──────────┴──────────┘
-                          │
-                       synthesis
+   pragmatist → paranoid → minimalist → optimizer → mentor
+                                                       │
+                                                  synthesis
                           │
                     Review.synthesis (JSONB)
                     Review.agent_results (JSONB)
@@ -129,11 +122,13 @@ pragmatist  paranoid  minimalist  optimizer   mentor
 
 ### Why LangGraph for the agent pipeline?
 
-The five-agent fan-out is a directed acyclic graph: five parallel leaf nodes, one aggregation node. LangGraph's `StateGraph` expresses this directly — `add_edge(START, agent)` for each of the five, `add_edge(agent, 'synthesis')` for all five, and `add_edge('synthesis', END)`. The graph is compiled once at startup and reused. Alternatives (raw `asyncio.gather`, Celery chains, custom orchestration) require manual state passing, error propagation, and partial-result handling that LangGraph handles structurally.
+The five-agent pipeline is a directed acyclic graph: five sequential nodes feeding into one aggregation node. LangGraph's `StateGraph` expresses this directly — a chain of `add_edge` calls, compiled once at startup and reused for every review. Alternatives (raw loops, Celery chains, custom orchestration) require manual state passing and error propagation that LangGraph handles structurally.
 
-### Why Gemini 1.5 Flash?
+The pipeline runs sequentially (not in parallel) to stay within Groq's free-tier TPM limits and to give the frontend a live one-card-at-a-time update experience. If billing is enabled, switching back to parallel fan-out is a one-line change in `graph.py`.
 
-The free tier supports the project's use case without a billing requirement, which matters for a portfolio project that may receive bursts of traffic. Flash has sufficient context window (1M tokens) to handle large code submissions and enough output tokens for detailed per-agent reviews. The tradeoff is lower reasoning quality than Gemini 1.5 Pro or GPT-4o — acceptable for a code review tool where the personas provide strong structural guidance via system prompts.
+### Why Groq (llama-3.3-70b-versatile)?
+
+Groq's free tier offers 14,400 RPD — far more generous than Gemini's free tier (which had `limit: 0` for the models available on the project's API key). `llama-3.3-70b-versatile` reliably follows structured JSON schemas and reasons well about code quality. The tradeoff is slightly lower reasoning depth than GPT-4o or Gemini 2.5 Pro — acceptable for a code review tool where the agent personas provide strong structural guidance via system prompts.
 
 ### Why Celery for async task execution, not Django's async views?
 
@@ -171,8 +166,8 @@ WebSocket clients that connect after the pipeline has already emitted events (pa
 
 | Layer | Technology |
 |---|---|
-| Agent Pipeline | LangGraph 0.2+ (parallel fan-out) |
-| LLM | Google Gemini 1.5 Flash (`langchain-google-genai`) |
+| Agent Pipeline | LangGraph 0.2+ (sequential chain) |
+| LLM | Groq — llama-3.3-70b-versatile (`groq` SDK) |
 | Backend | Django 5.0 + Django REST Framework |
 | WebSockets | Django Channels 4 + Redis channel layer |
 | Task Queue | Celery 5 (Redis broker) |
@@ -203,7 +198,7 @@ WebSocket clients that connect after the pipeline has already emitted events (pa
 ### Prerequisites
 
 - Docker and Docker Compose
-- A [Google Gemini API key](https://aistudio.google.com/) (free tier works)
+- A [Groq API key](https://console.groq.com/keys) (free tier works)
 - Optionally: Google OAuth credentials and a GitHub personal access token
 
 ### 1. Clone and configure
@@ -218,7 +213,7 @@ Edit `.env` and set at minimum:
 
 ```bash
 SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_urlsafe(50))">
-GEMINI_API_KEY=<your-gemini-api-key>
+GROQ_API_KEY=<your-groq-api-key>
 ```
 
 ### 2. Start services
@@ -257,8 +252,8 @@ Navigate to [http://localhost:3000](http://localhost:3000).
 | `REDIS_CELERY_BROKER` | Yes | Redis for Celery broker |
 | `REDIS_CELERY_BACKEND` | Yes | Redis for Celery results |
 | `REDIS_CACHE_URL` | Yes | Redis for Django cache |
-| `GEMINI_API_KEY` | Yes | Google AI Studio key |
-| `GEMINI_MODEL` | No | Default: `gemini-1.5-flash` |
+| `GROQ_API_KEY` | Yes | Groq Console key |
+| `GROQ_MODEL` | No | Default: `llama-3.3-70b-versatile` |
 | `GITHUB_TOKEN` | No | Raises GitHub API limit from 60 to 5000 req/hr |
 | `GOOGLE_CLIENT_ID` | No | Required for Google OAuth login |
 | `GOOGLE_CLIENT_SECRET` | No | Required for Google OAuth login |
@@ -316,7 +311,7 @@ ws.onmessage = (e) => {
   const event = JSON.parse(e.data);
   switch (event.event) {
     case 'pipeline_start':   // pipeline dispatched to worker
-    case 'agent_done':       // event.agent, event.verdict
+    case 'agent_done':       // event.agent, event.result
     case 'synthesis_done':   // event.verdict (final ranked output)
     case 'done':             // all complete
     case 'error':            // event.message
@@ -371,7 +366,7 @@ roastmycode/
 │   │   ├── input_handler/    # Paste, file upload, GitHub fetch
 │   │   └── export/           # PDF generation (WeasyPrint)
 │   ├── pipeline/
-│   │   ├── graph.py          # LangGraph parallel fan-out (5 agents → synthesis)
+│   │   ├── graph.py          # LangGraph sequential chain (5 agents → synthesis)
 │   │   ├── state.py          # ReviewState TypedDict
 │   │   └── agents/           # pragmatist, paranoid, minimalist, optimizer, mentor, synthesis
 │   ├── ws/                   # Django Channels consumers, routing, JWT middleware
@@ -436,7 +431,7 @@ npm run dev
 - **GitHub API rate limit** — without `GITHUB_TOKEN`, GitHub input is limited to 60 requests/hour across all users. Set a token to raise this to 5000/hr.
 - **Code size** — anonymous users are limited to 200 lines; authenticated users to 500 lines. File uploads are capped at 100KB.
 - **Language support** — all languages supported by pygments are detected, but agent prompts are English-only and perform best on mainstream languages (Python, TypeScript, Go, Java, Rust, C/C++).
-- **Gemini output length** — on very long inputs, Gemini 1.5 Flash may truncate responses. The synthesis step notes truncation if detected.
+- **Groq rate limits** — the free tier allows 14,400 RPD and 12,000 TPM for `llama-3.3-70b-versatile`. The sequential pipeline and SDK retry logic handle occasional bursts, but very large code files submitted in rapid succession may hit TPM limits briefly. The SDK retries automatically.
 - **PDF emoji rendering** — WeasyPrint does not support color emoji fonts on Linux. The PDF report uses text labels in place of emoji.
 
 ## License

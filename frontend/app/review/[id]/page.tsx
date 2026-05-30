@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
 import { AgentCard } from '@/components/AgentCard'
-import { SynthesisPanel } from '@/components/SynthesisPanel'
+import { SynthesisScoreCard, SynthesisIssuesPanel } from '@/components/SynthesisPanel'
 import { ShareButton } from '@/components/ShareButton'
 import { DownloadPDF } from '@/components/DownloadPDF'
 import { getReview, type ReviewDetail, type AgentResult, type Synthesis } from '@/lib/api'
@@ -71,10 +71,10 @@ export default function ReviewPage() {
     <>
       <Navbar />
       <main className="pt-16 min-h-dvh bg-canvas">
-        <div className="container-xl py-12">
+        <div className="container-xl py-12 space-y-10">
 
           {/* Header */}
-          <div className="flex items-start justify-between mb-10 flex-wrap gap-4">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-2xl font-bold text-ink tracking-tight">
                 {review?.filename ?? review?.language ?? 'Code Review'}
@@ -93,11 +93,12 @@ export default function ReviewPage() {
             )}
           </div>
 
-          {/* Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main grid: agent cards (2/3) + score card (1/3) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
             {/* Agent cards */}
-            <div className="lg:col-span-2 space-y-4">
-              <p className="eyebrow">Agent Reviews</p>
+            <div className="lg:col-span-2 space-y-3">
+              <p className="eyebrow mb-3">Agent Reviews</p>
               {AGENT_NAMES.map((name) => (
                 <AgentCard
                   key={name}
@@ -108,26 +109,37 @@ export default function ReviewPage() {
               ))}
             </div>
 
-            {/* Synthesis */}
-            <div>
-              <p className="eyebrow mb-4">Final Verdict</p>
+            {/* Score card — compact sidebar */}
+            <div className="lg:sticky lg:top-24">
+              <p className="eyebrow mb-3">Final Verdict</p>
               {synthesis ? (
-                <SynthesisPanel synthesis={synthesis} />
+                <SynthesisScoreCard synthesis={synthesis} />
               ) : (
-                <div className="card p-8 text-center">
+                <div className="card p-6">
                   {isRunning ? (
-                    <div className="space-y-3">
-                      <div className="h-3 shimmer w-3/4 mx-auto" />
-                      <div className="h-3 shimmer w-1/2 mx-auto" />
-                      <div className="h-3 shimmer w-2/3 mx-auto" />
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-24 h-24 rounded-full shimmer" />
+                      <div className="w-full space-y-2">
+                        <div className="h-3 shimmer w-3/4 mx-auto" />
+                        <div className="h-3 shimmer w-1/2 mx-auto" />
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted">Awaiting synthesis…</p>
+                    <p className="text-sm text-muted text-center">Awaiting synthesis…</p>
                   )}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Full-width issue browser — only when synthesis is ready */}
+          {synthesis && (
+            <div>
+              <p className="eyebrow mb-4">Findings</p>
+              <SynthesisIssuesPanel synthesis={synthesis} />
+            </div>
+          )}
+
         </div>
       </main>
     </>
