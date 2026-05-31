@@ -33,7 +33,8 @@ PyGithub==2.3.0
 pygments==2.18.0
 
 # PDF generation
-weasyprint==62.3
+weasyprint==60.2
+pydyf==0.8.0
 
 # File storage (production)
 django-storages==1.14.3

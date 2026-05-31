@@ -1,31 +1,52 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
 import { SynthesisScoreCard, SynthesisIssuesPanel } from '@/components/SynthesisPanel'
 import { AgentCard } from '@/components/AgentCard'
 import { ShareButton } from '@/components/ShareButton'
-import { getReviewBySlug } from '@/lib/api'
+import { getReviewBySlug, type ReviewDetail } from '@/lib/api'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 const AGENT_NAMES = ['pragmatist', 'paranoid', 'minimalist', 'optimizer', 'mentor'] as const
 
-interface Props {
-  params: { slug: string }
-}
+export default function SharePage() {
+  const { slug } = useParams<{ slug: string }>()
+  const [review, setReview] = useState<ReviewDetail | null>(null)
+  const [notFound, setNotFound] = useState(false)
 
-export async function generateMetadata({ params }: Props) {
-  return {
-    title: 'Code Review · RoastMyCode',
-    description: 'Shared AI code review from RoastMyCode.',
+  useEffect(() => {
+    getReviewBySlug(slug)
+      .then(setReview)
+      .catch(() => setNotFound(true))
+  }, [slug])
+
+  if (notFound) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-dvh bg-canvas flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-ink font-medium mb-2">Review not found</p>
+            <p className="text-sm text-muted mb-6">This link may be invalid or the review is not yet complete.</p>
+            <Link href="/" className="btn-primary text-sm">Go home</Link>
+          </div>
+        </main>
+      </>
+    )
   }
-}
 
-export default async function SharePage({ params }: Props) {
-  let review
-
-  try {
-    review = await getReviewBySlug(params.slug)
-  } catch {
-    notFound()
+  if (!review) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-dvh bg-canvas flex items-center justify-center">
+          <Loader2 size={24} className="text-muted animate-spin" />
+        </main>
+      </>
+    )
   }
 
   if (!review.synthesis) {
@@ -57,7 +78,7 @@ export default async function SharePage({ params }: Props) {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <ShareButton slug={params.slug} />
+              <ShareButton slug={slug} />
               <Link href="/" className="btn-primary text-sm">
                 Review my code
               </Link>

@@ -25,8 +25,15 @@ async function request<T>(
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+    }
     const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body?.detail ?? `HTTP ${res.status}`)
+    const message = Array.isArray(body)
+      ? body[0]
+      : body?.detail ?? `HTTP ${res.status}`
+    throw new ApiError(res.status, message)
   }
 
   if (res.status === 204) return undefined as unknown as T
@@ -48,6 +55,7 @@ export interface SubmitPayload {
   code?: string
   filename?: string
   github_url?: string
+  language?: string
 }
 
 export interface ReviewSummary {
@@ -106,10 +114,11 @@ export function submitReview(payload: SubmitPayload) {
   })
 }
 
-export function submitFileReview(file: File) {
+export function submitFileReview(file: File, language?: string) {
   const form = new FormData()
   form.append('file', file)
   form.append('input_mode', 'file')
+  if (language) form.append('language', language)
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
   const headers: Record<string, string> = {}
@@ -138,6 +147,10 @@ export function getReviewBySlug(slug: string) {
 
 export function getHistory() {
   return request<ReviewSummary[]>('/api/reviews/history/')
+}
+
+export function deleteReview(id: string) {
+  return request<void>(`/api/reviews/${id}/`, { method: 'DELETE' })
 }
 
 export function saveReview(reviewId: string) {

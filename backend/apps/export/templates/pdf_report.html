@@ -14,22 +14,21 @@
 
     /* ── Header ── */
     .header {
-      background: #0f0f0f;
-      color: #fff;
+      background: #fff;
+      border-bottom: 2px solid #0f0f0f;
       padding: 28px 32px;
       margin-bottom: 28px;
     }
-    .header h1 { font-size: 22px; letter-spacing: -0.5px; }
-    .header .subtitle { color: #888; font-size: 12px; margin-top: 4px; }
+    .header h1 { font-size: 22px; letter-spacing: -0.5px; color: #0f0f0f; }
+    .header .subtitle { color: #666; font-size: 12px; margin-top: 4px; }
 
     .meta {
-      display: flex;
-      gap: 32px;
       margin-top: 16px;
       font-size: 12px;
-      color: #aaa;
+      color: #666;
     }
-    .meta span { color: #fff; }
+    .meta .meta-item { display: inline; margin-right: 24px; }
+    .meta .meta-item span { color: #0f0f0f; font-weight: 600; }
 
     /* ── Score ── */
     .score-block {
@@ -37,9 +36,20 @@
       border-left: 4px solid #0f0f0f;
       padding: 16px 24px;
       margin: 0 32px 28px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
+    }
+    .score-row {
+      display: table;
+      width: 100%;
+    }
+    .score-left {
+      display: table-cell;
+      width: 100px;
+      vertical-align: middle;
+    }
+    .score-right {
+      display: table-cell;
+      vertical-align: middle;
+      padding-left: 24px;
     }
     .score-number {
       font-size: 48px;
@@ -74,11 +84,11 @@
       page-break-inside: avoid;
     }
     .issue-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: table;
       margin-bottom: 6px;
     }
+    .issue-header .badge { display: table-cell; vertical-align: middle; padding-right: 10px; }
+    .issue-header .issue-title { display: table-cell; vertical-align: middle; }
     .issue-title { font-weight: 600; font-size: 13px; }
     .issue-desc  { font-size: 12px; color: #444; }
     .issue-hint  { font-size: 11px; color: #888; margin-top: 4px; font-family: monospace; }
@@ -152,20 +162,23 @@
     <h1>RoastMyCode</h1>
     <div class="subtitle">AI Code Review Report</div>
     <div class="meta">
-      Language: <span>{{ review.language }}</span>
-      &nbsp;&nbsp;
-      {% if review.filename %}Filename: <span>{{ review.filename }}</span>&nbsp;&nbsp;{% endif %}
-      Date: <span>{{ review.completed_at|date:"N j, Y" }}</span>
+      <span class="meta-item">Language: <span>{{ review.language }}</span></span>
+      {% if review.filename %}<span class="meta-item">Filename: <span>{{ review.filename }}</span></span>{% endif %}
+      <span class="meta-item">Date: <span>{{ review.completed_at|date:"N j, Y" }}</span></span>
     </div>
   </div>
 
   <!-- Roast Score -->
   <div class="score-block">
-    <div>
-      <div class="score-number">{{ score }}</div>
-      <div class="score-label">Roast Score (0 = clean, 100 = rewrite)</div>
+    <div class="score-row">
+      <div class="score-left">
+        <div class="score-number">{{ score }}</div>
+        <div class="score-label">Roast Score</div>
+      </div>
+      <div class="score-right">
+        <div class="score-summary">{{ summary }}</div>
+      </div>
     </div>
-    <div class="score-summary">{{ summary }}</div>
   </div>
 
   <!-- Critical Issues -->

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class ReviewSubmitView(APIView):
     """POST /api/reviews/ — submit code for review."""
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (AllowAny,)
     throttle_classes = (AnonRateThrottle, UserRateThrottle)
     parser_classes = (JSONParser, MultiPartParser, FormParser)
 
@@ -57,6 +57,11 @@ class ReviewSubmitView(APIView):
                 user_is_authenticated=user_is_authenticated,
             )
 
+        # Override detected language if user specified one explicitly
+        user_language = request.data.get('language', '').strip()
+        if user_language:
+            code_data['language'] = user_language
+
         # Resolve anonymous user session key (correction #13)
         session_key = ''
         if not user_is_authenticated:
@@ -88,13 +93,29 @@ class ReviewSubmitView(APIView):
 
 
 class ReviewDetailView(APIView):
-    """GET /api/reviews/{id}/ — fetch review status and results."""
+    """GET /api/reviews/{id}/ — fetch review status and results.
+    DELETE /api/reviews/{id}/ — delete own review."""
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get(self, request: Request, review_id: str) -> Response:
         review = get_object_or_404(Review, id=review_id)
         serializer = ReviewDetailSerializer(review)
         return Response(serializer.data)
+
+    def delete(self, request: Request, review_id: str) -> Response:
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Authentication required.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        review = get_object_or_404(Review, id=review_id)
+        if review.user != request.user:
+            return Response(
+                {'detail': 'You do not have permission to delete this review.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        review.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ReviewShareView(APIView):

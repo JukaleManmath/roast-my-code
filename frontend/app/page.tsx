@@ -72,7 +72,7 @@ export default function HomePage() {
             <a href="#submit" className="btn-primary text-base px-8 py-3.5">
               Roast my code
             </a>
-            <Link href="/dashboard" className="btn-secondary text-base px-8 py-3.5">
+            <Link href="/example" className="btn-secondary text-base px-8 py-3.5">
               See an example
             </Link>
           </div>

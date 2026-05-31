@@ -14,30 +14,58 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'github', label: 'GitHub URL',  icon: <Github size={14} /> },
 ]
 
+const LANGUAGES = [
+  'Bash',
+  'C',
+  'C++',
+  'C#',
+  'CSS',
+  'Dart',
+  'Go',
+  'HTML',
+  'Java',
+  'JavaScript',
+  'Kotlin',
+  'Lua',
+  'Mojo',
+  'PHP',
+  'Python',
+  'R',
+  'Ruby',
+  'Rust',
+  'Scala',
+  'Shell',
+  'SQL',
+  'Swift',
+  'TypeScript',
+]
+
 export function InputPanel() {
   const router = useRouter()
-  const [tab, setTab]         = useState<Tab>('paste')
-  const [code, setCode]       = useState('')
-  const [ghUrl, setGhUrl]     = useState('')
-  const [file, setFile]       = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState<string | null>(null)
-  const fileRef               = useRef<HTMLInputElement>(null)
+  const [tab, setTab]           = useState<Tab>('paste')
+  const [code, setCode]         = useState('')
+  const [ghUrl, setGhUrl]       = useState('')
+  const [file, setFile]         = useState<File | null>(null)
+  const [language, setLanguage] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const fileRef                 = useRef<HTMLInputElement>(null)
 
   async function handleSubmit() {
     setError(null)
+    if (!language) { setError('Select a language before submitting.'); return }
     setLoading(true)
     try {
       let result: { id: string }
       if (tab === 'paste') {
         if (!code.trim()) { setError('Paste some code first.'); return }
-        result = await submitReview({ input_mode: 'paste', code })
+        result = await submitReview({ input_mode: 'paste', code, language })
       } else if (tab === 'github') {
         if (!ghUrl.trim()) { setError('Enter a GitHub URL.'); return }
-        result = await submitReview({ input_mode: 'github', github_url: ghUrl })
+        result = await submitReview({ input_mode: 'github', github_url: ghUrl, language })
       } else {
         if (!file) { setError('Select a file first.'); return }
-        result = await submitFileReview(file)
+        result = await submitFileReview(file, language)
       }
       router.push(`/review/${result.id}`)
     } catch (err) {
@@ -128,12 +156,27 @@ export function InputPanel() {
           <p className="text-sm text-red-600 mt-3">{error}</p>
         )}
 
-        <div className="mt-5 flex justify-between items-center">
-          <p className="text-xs text-muted">Free. No login required.</p>
+        <div className="mt-5 flex justify-between items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <p className="text-xs text-muted shrink-0">Free. No login required.</p>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className={clsx(
+                'text-xs bg-subtle border rounded-lg px-2 py-1.5 focus:outline-none focus:border-ink/30 cursor-pointer',
+                language ? 'text-ink border-black/[0.08]' : 'text-muted border-red-300',
+              )}
+            >
+              <option value="" disabled>Select language</option>
+              {LANGUAGES.map((l) => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </div>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="btn-primary flex items-center gap-2 py-2.5"
+            className="btn-primary flex items-center gap-2 py-2.5 shrink-0"
           >
             {loading ? (
               <>

@@ -20,6 +20,9 @@ export function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-1">
+          <Link href="/" className="btn-ghost text-sm">
+            New review
+          </Link>
           <Link href="/dashboard" className="btn-ghost text-sm">
             Dashboard
           </Link>
