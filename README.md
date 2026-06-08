@@ -126,9 +126,39 @@ The five-agent pipeline is a directed acyclic graph: five sequential nodes feedi
 
 The pipeline runs sequentially (not in parallel) to stay within Groq's free-tier TPM limits and to give the frontend a live one-card-at-a-time update experience. If billing is enabled, switching back to parallel fan-out is a one-line change in `graph.py`.
 
-### Why Groq (llama-3.3-70b-versatile)?
+### Agent Execution Model: Parallel → Sequential
 
-Groq's free tier offers 14,400 RPD — far more generous than Gemini's free tier (which had `limit: 0` for the models available on the project's API key). `llama-3.3-70b-versatile` reliably follows structured JSON schemas and reasons well about code quality. The tradeoff is slightly lower reasoning depth than GPT-4o or Gemini 2.5 Pro — acceptable for a code review tool where the agent personas provide strong structural guidance via system prompts.
+The pipeline was initially designed to run all five agents in parallel — each agent fires simultaneously and the synthesis node waits for all five to complete before running. This is the natural topology for independent reviewers.
+
+In practice it immediately hit Groq's 12,000 TPM limit. Five agents firing at the same time consumed roughly 4,000–5,000 tokens in the same second, exhausting the per-minute bucket instantly and causing the 4th and 5th agents to 429 on every run.
+
+Switching to sequential execution (`pragmatist → paranoid → minimalist → optimizer → mentor → synthesis`) spaces requests across 30–60 seconds, well within the TPM window. There is a side benefit: the frontend renders agent cards one at a time as each agent finishes, which gives the impression of a live debate rather than a simultaneous data dump. If the project moves to a paid Groq tier (or a different provider), reverting to parallel is a single topological change in `pipeline/graph.py`.
+
+### Rate Limit Resilience: SDK-Level Retry
+
+Even with sequential execution, the Groq free tier (5 RPM / 12,000 TPM) can still be exceeded — particularly by the synthesis node, which receives all five agent results as input and can request up to 4,096 output tokens in a single call.
+
+Measured token usage for a typical review (verified from Groq console logs):
+
+| Call | Input tokens | Output tokens |
+|---|---|---|
+| Agent 1 (pragmatist) | ~798 | ~673 |
+| Agent 2 (paranoid)   | ~830 | ~650 |
+| Agent 3 (minimalist) | ~835 | ~622 |
+| Agent 4 (optimizer)  | ~853 | ~494 |
+| Agent 5 (mentor)     | ~871 | ~796 |
+| Synthesis            | ~3,550 | ~1,405 |
+| **Total**            | **~7,737** | **~4,640** |
+
+At ~13,300 tokens per review, a single submission is already above the 12,000 TPM ceiling if all calls fall within the same minute. The Groq Python SDK handles this transparently: on a 429 response it reads the `retry-after` header (typically 1–23 seconds) and re-issues the request automatically, without surfacing an exception to application code. In practice, agents 4 and 5 and synthesis each get one automatic retry per run, adding 5–25 seconds of total latency but completing successfully. The Celery task retry (`max_retries=2`) acts as a final safety net for cases where the SDK exhausts its own retries.
+
+### LLM Provider: Gemini → Groq (and why)
+
+The pipeline was originally written against the Google Gemini API (`gemini-1.5-flash`). In production, every call returned a `limit: 0` error — the API key did not have access to that model variant. Upgrading to `gemini-2.0-flash` hit a different wall: Google deprecated `2.0-flash` effective June 1 2026, right as the project was being deployed. Both issues are free-tier access restrictions, not model quality problems.
+
+Groq was chosen as the replacement for two reasons: its free tier is the most generous available for production use (14,400 RPD, no waitlist), and `llama-3.3-70b-versatile` reliably produces structured JSON outputs, which is the primary requirement for a pipeline where every agent must return a parseable schema. The tradeoff is lower reasoning depth than Gemini 2.5 Pro or GPT-4o — acceptable here because the agent personas constrain output structure tightly via system prompts.
+
+Switching required replacing `google-genai` with `groq==0.13.1`, rewriting the LLM call in `base.py` and `synthesis.py` to use `client.chat.completions.create`, and renaming `GEMINI_API_KEY`/`GEMINI_MODEL` to `GROQ_API_KEY`/`GROQ_MODEL` in settings.
 
 ### Why Celery for async task execution, not Django's async views?
 
