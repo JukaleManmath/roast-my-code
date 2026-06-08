@@ -13,6 +13,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             'input_mode',
             'language',
             'filename',
+            'github_url',
             'share_slug',
             'created_at',
         )

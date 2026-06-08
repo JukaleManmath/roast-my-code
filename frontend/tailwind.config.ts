@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,16 +10,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas:   '#FAF9F6',
-        surface:  '#FFFFFF',
-        ink:      '#1a1a1a',
-        muted:    '#6b6b6b',
-        subtle:   '#f0ede8',
-        border:   'rgba(0,0,0,0.08)',
-        accent:   '#1a1a1a',
-        critical: '#dc2626',
-        warning:  '#d97706',
-        info:     '#4f46e5',
+        canvas:   'rgb(var(--canvas-rgb) / <alpha-value>)',
+        surface:  'rgb(var(--surface-rgb) / <alpha-value>)',
+        ink:      'rgb(var(--ink-rgb) / <alpha-value>)',
+        muted:    'rgb(var(--muted-rgb) / <alpha-value>)',
+        subtle:   'rgb(var(--subtle-rgb) / <alpha-value>)',
+        border:   'var(--border)',
+        critical: 'rgb(var(--critical-rgb) / <alpha-value>)',
+        warning:  'rgb(var(--warning-rgb) / <alpha-value>)',
+        info:     'rgb(var(--info-rgb) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],

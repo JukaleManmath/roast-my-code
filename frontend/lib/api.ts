@@ -61,8 +61,10 @@ export interface SubmitPayload {
 export interface ReviewSummary {
   id: string
   status: string
+  input_mode: 'paste' | 'file' | 'github'
   language: string
   filename: string | null
+  github_url: string
   share_slug: string
   created_at: string
   completed_at: string | null

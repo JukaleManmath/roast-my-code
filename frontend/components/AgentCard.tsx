@@ -54,21 +54,21 @@ export function AgentCard({ name, result, loading }: AgentCardProps) {
           </div>
         )}
 
-        {/* Summary + count badges */}
+        {/* Summary as quote block + count badges */}
         {done && (
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
             {result?.summary && (
               <p className="text-sm text-muted leading-relaxed">{result.summary}</p>
             )}
             {counts && (counts.critical + counts.warning + counts.suggestion) > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {counts.critical   > 0 && <span className="badge-critical">{counts.critical} Critical</span>}
-                {counts.warning    > 0 && <span className="badge-warning">{counts.warning} Warning</span>}
-                {counts.suggestion > 0 && <span className="badge-suggestion">{counts.suggestion} Note</span>}
+              <div className="flex flex-wrap gap-1.5">
+                {counts.critical   > 0 && <span className="badge-critical">{counts.critical} critical</span>}
+                {counts.warning    > 0 && <span className="badge-warning">{counts.warning} warning</span>}
+                {counts.suggestion > 0 && <span className="badge-suggestion">{counts.suggestion} note</span>}
               </div>
             )}
-            {done && (!result?.issues || result.issues.length === 0) && (
-              <p className="text-sm text-muted italic mt-2">No issues found.</p>
+            {(!result?.issues || result.issues.length === 0) && (
+              <p className="text-sm text-muted italic">No issues found.</p>
             )}
           </div>
         )}
@@ -79,14 +79,15 @@ export function AgentCard({ name, result, loading }: AgentCardProps) {
         <>
           <button
             onClick={() => setExpanded(e => !e)}
-            className="w-full flex items-center justify-between px-5 py-2.5 border-t border-black/[0.04] text-xs text-muted hover:text-ink hover:bg-subtle/50 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-2.5 text-xs text-muted hover:text-ink hover:bg-subtle/50 transition-colors"
+            style={{ borderTop: '1px solid var(--border)' }}
           >
             <span>{expanded ? 'Hide issues' : `View ${result.issues.length} issue${result.issues.length !== 1 ? 's' : ''}`}</span>
             {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
 
           {expanded && (
-            <ul className="px-5 pb-5 pt-4 space-y-3 border-t border-black/[0.04]">
+            <ul className="px-5 pb-5 pt-4 space-y-4" style={{ borderTop: '1px solid var(--border)' }}>
               {result.issues.map((issue, i) => (
                 <li key={i} className="flex items-start gap-2.5">
                   <span className={clsx('shrink-0 mt-0.5', {

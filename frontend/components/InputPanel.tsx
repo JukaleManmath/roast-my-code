@@ -15,30 +15,30 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 ]
 
 const LANGUAGES = [
-  'Bash',
-  'C',
-  'C++',
-  'C#',
-  'CSS',
-  'Dart',
-  'Go',
-  'HTML',
-  'Java',
-  'JavaScript',
-  'Kotlin',
-  'Lua',
-  'Mojo',
-  'PHP',
-  'Python',
-  'R',
-  'Ruby',
-  'Rust',
-  'Scala',
-  'Shell',
-  'SQL',
-  'Swift',
-  'TypeScript',
+  'Bash', 'C', 'C++', 'C#', 'CSS', 'Dart', 'Go', 'HTML', 'Java',
+  'JavaScript', 'Kotlin', 'Lua', 'Mojo', 'PHP', 'Python', 'R',
+  'Ruby', 'Rust', 'Scala', 'Shell', 'SQL', 'Swift', 'TypeScript',
 ]
+
+const DETECT_RULES: [RegExp, string][] = [
+  [/\bdef \w+\s*\(|from \w+ import\b|import \w+\n|\bprint\s*\(/, 'Python'],
+  [/:\s*(string|number|boolean|void|any)\b|interface \w+\s*\{|<[A-Z]\w*>/, 'TypeScript'],
+  [/\bconst\b|\blet\b|\bvar\b|\b=>\b|\bconsole\.log\b/, 'JavaScript'],
+  [/\bfunc \w+\s*\(|\bpackage \w+|\bgo func\b|:=/, 'Go'],
+  [/\bfn \w+|let mut |use std::|impl \w+/, 'Rust'],
+  [/\bpublic class\b|\bSystem\.out\b|\bvoid main\b/, 'Java'],
+  [/SELECT\b.+FROM\b|INSERT INTO\b|CREATE TABLE\b/i, 'SQL'],
+  [/#include\s*<\w+\.h>|\bprintf\s*\(|\bint main\s*\(/, 'C'],
+  [/\becho\b|\$\w+|\bfi\b|\bthen\b/, 'Bash'],
+  [/\bfn main\(\)|use std::|extern crate/, 'Rust'],
+]
+
+function detectLanguage(code: string): string | null {
+  for (const [re, lang] of DETECT_RULES) {
+    if (re.test(code)) return lang
+  }
+  return null
+}
 
 export function InputPanel() {
   const router = useRouter()
@@ -50,6 +50,14 @@ export function InputPanel() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const fileRef                 = useRef<HTMLInputElement>(null)
+
+  function handleCodeChange(value: string) {
+    setCode(value)
+    if (!language && value.length > 40) {
+      const detected = detectLanguage(value)
+      if (detected) setLanguage(detected)
+    }
+  }
 
   async function handleSubmit() {
     setError(null)
@@ -75,10 +83,13 @@ export function InputPanel() {
     }
   }
 
+  const lineCount = code ? code.split('\n').length : 0
+  const charCount = code.length
+
   return (
     <div className="card overflow-hidden">
       {/* Tab bar */}
-      <div className="flex border-b border-black/[0.06] bg-subtle/40">
+      <div className="flex bg-subtle/40" style={{ borderBottom: '1px solid var(--border)' }}>
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -99,13 +110,20 @@ export function InputPanel() {
       {/* Content */}
       <div className="p-6">
         {tab === 'paste' && (
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Paste your code here…"
-            spellCheck={false}
-            className="w-full h-64 bg-transparent resize-none font-mono text-sm text-ink placeholder:text-muted/50 focus:outline-none leading-relaxed"
-          />
+          <div className="relative">
+            <textarea
+              value={code}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              placeholder="Paste your code here…"
+              spellCheck={false}
+              className="w-full h-64 bg-transparent resize-none font-mono text-sm text-ink placeholder:text-muted/50 focus:outline-none leading-relaxed"
+            />
+            {charCount > 0 && (
+              <p className="text-[11px] text-muted/50 font-mono mt-1 text-right">
+                {lineCount} {lineCount === 1 ? 'line' : 'lines'} · {charCount.toLocaleString()} chars
+              </p>
+            )}
+          </div>
         )}
 
         {tab === 'github' && (
@@ -125,7 +143,12 @@ export function InputPanel() {
 
         {tab === 'file' && (
           <div
-            className="py-10 flex flex-col items-center justify-center border-2 border-dashed border-black/[0.08] rounded-xl cursor-pointer hover:border-ink/20 transition-colors"
+            className="py-10 flex flex-col items-center justify-center rounded-xl cursor-pointer transition-colors"
+            style={{
+              border: '2px dashed var(--border)',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgb(var(--ink-rgb) / 0.2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
             onClick={() => fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
@@ -153,25 +176,39 @@ export function InputPanel() {
         )}
 
         {error && (
-          <p className="text-sm text-red-600 mt-3">{error}</p>
+          <p className="text-sm text-red-500 mt-3 flex items-center gap-1.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {error}
+          </p>
         )}
 
         <div className="mt-5 flex justify-between items-center gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <p className="text-xs text-muted shrink-0">Free. No login required.</p>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className={clsx(
-                'text-xs bg-subtle border rounded-lg px-2 py-1.5 focus:outline-none focus:border-ink/30 cursor-pointer',
-                language ? 'text-ink border-black/[0.08]' : 'text-muted border-red-300',
+            <div className="relative">
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className={clsx(
+                  'text-xs rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer transition-colors',
+                  language
+                    ? 'text-ink'
+                    : 'text-muted',
+                )}
+                style={{
+                  background: 'rgb(var(--subtle-rgb))',
+                  border: `1px solid ${language ? 'var(--border)' : 'rgb(239 68 68 / 0.5)'}`,
+                }}
+              >
+                <option value="" disabled>Select language</option>
+                {LANGUAGES.map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
+              {language && tab === 'paste' && detectLanguage(code) === language && (
+                <span className="absolute -top-2 -right-1 text-[9px] bg-green-500 text-white rounded-full px-1 leading-4">auto</span>
               )}
-            >
-              <option value="" disabled>Select language</option>
-              {LANGUAGES.map((l) => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
+            </div>
           </div>
           <button
             onClick={handleSubmit}

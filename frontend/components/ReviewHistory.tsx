@@ -5,6 +5,26 @@ import Link from 'next/link'
 import type { ReviewSummary } from '@/lib/api'
 import { ArrowRight, Trash2 } from 'lucide-react'
 
+function reviewTitle(r: ReviewSummary): string {
+  if (r.input_mode === 'file' && r.filename) return r.filename
+  if (r.input_mode === 'github' && r.github_url) {
+    try {
+      const parts = new URL(r.github_url).pathname.split('/').filter(Boolean)
+      return parts[parts.length - 1] ?? r.github_url
+    } catch {
+      return r.github_url
+    }
+  }
+  return `${r.language} snippet`
+}
+
+function reviewSubtitle(r: ReviewSummary): string {
+  const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const mode = r.input_mode === 'github' ? 'GitHub' : r.input_mode === 'file' ? 'File upload' : 'Pasted'
+  const status = r.status.charAt(0).toUpperCase() + r.status.slice(1)
+  return `${mode} · ${status} · ${date}`
+}
+
 interface ReviewHistoryProps {
   reviews: ReviewSummary[]
   onDelete: (id: string) => void
@@ -39,10 +59,8 @@ export function ReviewHistory({ reviews, onDelete }: ReviewHistoryProps) {
               <span className="text-xs font-mono text-muted uppercase">{r.language.slice(0, 3)}</span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-ink truncate">{r.filename ?? r.language}</p>
-              <p className="text-xs text-muted mt-0.5 capitalize">
-                {r.status} &middot; {new Date(r.created_at).toLocaleDateString()}
-              </p>
+              <p className="text-sm font-medium text-ink truncate">{reviewTitle(r)}</p>
+              <p className="text-xs text-muted mt-0.5">{reviewSubtitle(r)}</p>
             </div>
           </Link>
 
@@ -71,7 +89,9 @@ export function ReviewHistory({ reviews, onDelete }: ReviewHistoryProps) {
                 >
                   <Trash2 size={14} />
                 </button>
-                <ArrowRight size={15} className="text-muted group-hover:translate-x-0.5 transition-transform duration-150" />
+                <Link href={`/review/${r.id}`} className="p-1.5 rounded-lg text-muted hover:text-ink transition-colors duration-150">
+                  <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform duration-150" />
+                </Link>
               </>
             )}
           </div>
