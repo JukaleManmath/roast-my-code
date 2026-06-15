@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
-import { ThemeProvider } from '@/components/ThemeProvider'
-import { CommandPalette } from '@/components/CommandPalette'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -18,20 +16,17 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'RoastMyCode - AI Code Review',
-  description: 'Five AI engineers review your code and tell you exactly what\'s wrong with it.',
+  title: 'PanelReview — AI Code Review',
+  description: 'Five AI engineers independently review your code and surface exactly where they disagree.',
   icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-          <CommandPalette />
-          <Toaster position="bottom-right" richColors closeButton />
-        </ThemeProvider>
+        {children}
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   )

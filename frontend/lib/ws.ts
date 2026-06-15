@@ -1,8 +1,14 @@
 const WS_BASE = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000'
 
+export interface TokenUsage {
+  in: number
+  out: number
+  total: number
+}
+
 export type WsEvent =
   | { event: 'pipeline_start'; review_id: string }
-  | { event: 'agent_done'; agent: string; result: unknown }
+  | { event: 'agent_done'; agent: string; result: unknown; tokens_used?: TokenUsage }
   | { event: 'synthesis_done'; verdict: unknown }
   | { event: 'done'; review_id: string }
   | { event: 'error'; message: string }
@@ -21,7 +27,7 @@ export class ReviewSocket {
   }
 
   connect() {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null
     const qs = token ? `?token=${token}` : ''
     const url = `${WS_BASE}/ws/reviews/${this.reviewId}/${qs}`
 

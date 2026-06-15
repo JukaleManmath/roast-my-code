@@ -19,7 +19,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
+    const token = sessionStorage.getItem('access_token')
     if (!token) { router.replace('/'); return }
 
     getMe()

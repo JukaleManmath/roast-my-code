@@ -1,41 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getMe, type User } from '@/lib/api'
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
-const REDIRECT_URI     = 'http://localhost:3000/auth/callback'
-
-function buildGoogleOAuthUrl() {
-  const params = new URLSearchParams({
-    client_id:     GOOGLE_CLIENT_ID,
-    redirect_uri:  REDIRECT_URI,
-    response_type: 'code',
-    scope:         'openid email profile',
-    access_type:   'offline',
-    prompt:        'select_account',
-  })
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
-}
+import { useAuth, buildGoogleOAuthUrl } from '@/lib/auth'
 
 export function AuthButton() {
-  const [user, setUser]       = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (!token) { setLoading(false); return }
-
-    getMe()
-      .then(setUser)
-      .catch(() => localStorage.removeItem('access_token'))
-      .finally(() => setLoading(false))
-  }, [])
+  const { user, loading } = useAuth()
 
   function handleLogout() {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    setUser(null)
+    sessionStorage.removeItem('access_token')
+    window.location.reload()
   }
 
   function handleSignIn() {

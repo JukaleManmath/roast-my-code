@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import date
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
@@ -51,6 +52,8 @@ def call_agent(
         f"```\n{raw_code}\n```"
     )
 
+    tokens_used: dict | None = None
+
     try:
         response = client.chat.completions.create(
             model=settings.GROQ_MODEL,
@@ -58,7 +61,7 @@ def call_agent(
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user',   'content': user_content},
             ],
-            max_tokens=4096,
+            max_tokens=1200,
             temperature=0.3,
         )
         content = response.choices[0].message.content
@@ -69,13 +72,44 @@ def call_agent(
             logger.warning('Agent %s response truncated for review %s', agent_name, review_id)
             verdict['summary'] += ' [Note: response was truncated due to length]'
 
+        if response.usage:
+            tokens_in  = response.usage.prompt_tokens
+            tokens_out = response.usage.completion_tokens
+            tokens_used = {'in': tokens_in, 'out': tokens_out, 'total': tokens_in + tokens_out}
+            _increment_daily_token_budget(tokens_in + tokens_out)
+            logger.info('Agent %s tokens — in: %d, out: %d', agent_name, tokens_in, tokens_out)
+
     except Exception as exc:
         logger.error('Agent %s failed for review %s: %s', agent_name, review_id, exc)
         verdict = _error_verdict(str(exc))
 
-    _broadcast_agent_done(review_id, agent_name, verdict)
+    _broadcast_agent_done(review_id, agent_name, verdict, tokens_used)
 
     return {agent_name: verdict}
+
+
+def check_daily_token_budget() -> tuple[bool, int]:
+    """
+    Return (budget_ok, tokens_used_today).
+    budget_ok is False when usage exceeds DAILY_TOKEN_SOFT_LIMIT (default 85K).
+    """
+    from django.core.cache import cache
+
+    soft_limit = getattr(settings, 'GROQ_DAILY_TOKEN_SOFT_LIMIT', 85_000)
+    key = f'tokens:daily:{date.today().isoformat()}'
+    used = int(cache.get(key) or 0)
+    return used < soft_limit, used
+
+
+def _increment_daily_token_budget(tokens: int) -> None:
+    from django.core.cache import cache
+
+    key = f'tokens:daily:{date.today().isoformat()}'
+    try:
+        cache.incr(key, tokens)
+    except ValueError:
+        # Key doesn't exist yet — set it with a 25-hour TTL so it auto-expires
+        cache.set(key, tokens, timeout=90_000)
 
 
 def _parse_verdict(agent_name: str, content: str) -> dict:
@@ -106,11 +140,18 @@ def _error_verdict(message: str) -> dict:
     }
 
 
-def _broadcast_agent_done(review_id: str, agent_name: str, verdict: dict) -> None:
+def _broadcast_agent_done(
+    review_id: str,
+    agent_name: str,
+    verdict: dict,
+    tokens_used: dict | None = None,
+) -> None:
     """Send agent_done event to the WebSocket group and persist to event_log."""
     from apps.reviews.models import Review
 
-    payload = {'event': 'agent_done', 'agent': agent_name, 'result': verdict}
+    payload: dict = {'event': 'agent_done', 'agent': agent_name, 'result': verdict}
+    if tokens_used:
+        payload['tokens_used'] = tokens_used
 
     # Persist to event_log for replay.
     # Use PostgreSQL's || operator so parallel agents don't overwrite each other.

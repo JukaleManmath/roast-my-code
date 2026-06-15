@@ -1,6 +1,6 @@
-# RoastMyCode
+# PanelReview
 
-A multi-agent code review platform. Paste code, upload a file, or link a GitHub URL — five AI agents, each embodying a distinct senior engineer persona, independently tear your code apart and stream their verdicts live. A Synthesis Agent reconciles their findings into a severity-ranked verdict with a 0–100 roast score.
+A multi-agent code review platform. Paste code, upload a file, or link a GitHub URL — five AI agents, each embodying a distinct senior engineer persona, independently review your code and stream their verdicts live. A Synthesis Agent reconciles their findings, surfaces conflicts where agents disagree, and produces a severity-ranked verdict.
 
 **Contents**
 
@@ -22,9 +22,9 @@ A multi-agent code review platform. Paste code, upload a file, or link a GitHub 
 
 ## Overview
 
-RoastMyCode treats a code review as a structured debate between five opinionated engineers who never met. Each agent works from the same code independently, reports their findings without influence from the others, and streams results the moment they finish. The Synthesis Agent then steps in as a tech lead — identifying where multiple agents agree (high signal), where only one flags something (worth considering), and where they explicitly contradict each other (interesting conflict worth understanding).
+PanelReview treats a code review as a structured debate between five opinionated engineers who never met. Each agent works from the same code independently, reports their findings without influence from the others, and streams results the moment they finish. The Synthesis Agent then steps in as a tech lead — identifying where multiple agents agree (high signal), where only one flags something (worth considering), and where they explicitly contradict each other (interesting conflict worth understanding).
 
-The result is a 0–100 roast score, a severity-ranked issue list, a downloadable PDF report, and a permanent shareable link — all without requiring an account.
+The result is a conflict-first severity-ranked issue list, a downloadable PDF report, and a permanent shareable link — all without requiring an account.
 
 ## How It Works
 
@@ -216,7 +216,7 @@ WebSocket clients that connect after the pipeline has already emitted events (pa
 - **Three input modes** — paste, file upload, GitHub URL
 - **Live streaming** — agent verdicts appear as they complete via WebSocket
 - **Severity ranking** — issues flagged by 2+ agents are marked Critical; agent conflicts are surfaced explicitly
-- **0–100 roast score** — 0 is clean code, 100 is a full rewrite candidate
+- **Conflict detection** — where agents disagree is surfaced first; you see both stances and decide
 - **PDF export** — downloadable report with all findings
 - **Shareable links** — every review gets a permanent public URL (`/r/{slug}`)
 - **Review history** — Google OAuth unlocks a dashboard of past reviews
@@ -234,8 +234,8 @@ WebSocket clients that connect after the pipeline has already emitted events (pa
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/yourusername/roastmycode.git
-cd roastmycode
+git clone https://github.com/yourusername/panel-review.git
+cd panel-review
 cp .env.example .env
 ```
 
@@ -380,7 +380,7 @@ interface SynthesisVerdict {
 ## Project Structure
 
 ```
-roastmycode/
+panel-review/
 ├── backend/
 │   ├── config/
 │   │   ├── celery.py         # Celery app definition

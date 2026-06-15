@@ -1,6 +1,12 @@
 # Internal planning docs
 plan.md
 claude.md
+PROJECT_RESEARCH.md
+ARCHITECTURE.md
+PHASES.md
+
+# Claude Code project memory
+.claude/
 
 # Python
 __pycache__/

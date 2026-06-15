@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { Code2, Upload, Github, Loader2 } from 'lucide-react'
 import { submitReview, submitFileReview, ApiError } from '@/lib/api'
+import { useAuth, buildGoogleOAuthUrl } from '@/lib/auth'
 
 type Tab = 'paste' | 'file' | 'github'
 
@@ -42,6 +43,7 @@ function detectLanguage(code: string): string | null {
 
 export function InputPanel() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [tab, setTab]           = useState<Tab>('paste')
   const [code, setCode]         = useState('')
   const [ghUrl, setGhUrl]       = useState('')
@@ -184,7 +186,11 @@ export function InputPanel() {
 
         <div className="mt-5 flex justify-between items-center gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <p className="text-xs text-muted shrink-0">Free. No login required.</p>
+            {!authLoading && (
+              user
+                ? <p className="text-xs text-muted shrink-0">Up to 500 lines per review</p>
+                : <p className="text-xs text-muted shrink-0">Free · 200 line limit · <a href={buildGoogleOAuthUrl()} className="underline underline-offset-2">Sign in</a> for 500</p>
+            )}
             <div className="relative">
               <select
                 value={language}
@@ -221,7 +227,7 @@ export function InputPanel() {
                 Submitting…
               </>
             ) : (
-              'Roast my code'
+              'Start review'
             )}
           </button>
         </div>

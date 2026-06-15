@@ -3,7 +3,7 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_DB: roastmycode
+      POSTGRES_DB: panelreview
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:

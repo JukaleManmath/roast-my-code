@@ -1,79 +1,60 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { clsx } from 'clsx'
 import type { Synthesis } from '@/lib/api'
 
-// ── Score helpers ─────────────────────────────────────────────────────────────
+// ── Debate summary card (replaces score card) ─────────────────────────────────
 
-function scoreColor(score: number): { bar: string; text: string; label: string } {
-  if (score >= 70) return { bar: '', text: 'text-zinc-600', label: 'Needs rewrite' }
-  if (score >= 50) return { bar: '', text: 'text-zinc-600', label: 'Major issues' }
-  if (score >= 35) return { bar: '', text: 'text-zinc-600', label: 'Needs work' }
-  if (score >= 20) return { bar: '', text: 'text-zinc-600', label: 'Mostly solid' }
-  return             { bar: '', text: 'text-zinc-600', label: 'Clean code' }
-}
+export function DebateSummaryCard({ synthesis, totalTokens }: { synthesis: Synthesis; totalTokens?: number }) {
+  const conflictCount    = synthesis.conflicts?.length    ?? 0
+  const criticalCount    = synthesis.critical?.length     ?? 0
+  const warningCount     = synthesis.warnings?.length     ?? 0
+  const suggestionCount  = synthesis.suggestions?.length  ?? 0
+  const total = conflictCount + criticalCount + warningCount + suggestionCount
 
-// ── Score card (typographic, no SVG ring) ─────────────────────────────────────
-
-function ScoreDisplay({ score }: { score: number }) {
-  const [displayed, setDisplayed] = useState(0)
-  const [fired, setFired]         = useState(false)
-  const { bar, text, grade, label } = scoreColor(score)
-
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      setFired(true)
-      const duration = 1100
-      const start = performance.now()
-      function step(now: number) {
-        const p    = Math.min((now - start) / duration, 1)
-        const ease = 1 - Math.pow(1 - p, 3)
-        setDisplayed(Math.round(ease * score))
-        if (p < 1) requestAnimationFrame(step)
-      }
-      requestAnimationFrame(step)
-    }, 80)
-    return () => clearTimeout(delay)
-  }, [score])
-
-
-  return (
-    <div className="space-y-3">
-      {/* Large score + label */}
-      <div className="flex items-end gap-3">
-        <span className={clsx('text-6xl font-black leading-none tabular-nums', text)}>
-          {displayed}
-        </span>
-        <p className="text-sm text-muted mb-2">{label}</p>
-      </div>
-
-      <p className="text-[10px] text-muted/50">0 → clean &nbsp;·&nbsp; 100 → rewrite</p>
-    </div>
-  )
-}
-
-// ── Compact score card (sidebar) ─────────────────────────────────────────────
-
-export function SynthesisScoreCard({ synthesis }: { synthesis: Synthesis }) {
   return (
     <div className="card p-6 animate-slide-up space-y-5">
-      <ScoreDisplay score={synthesis.overall_score} />
-
-      {/* Verdict quote block */}
-      <div
-        className="pt-4"
-        style={{ borderTop: '1px solid var(--border)' }}
-      >
-        <p className="text-xs font-semibold text-ink mb-2">Verdict</p>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium text-muted">Panel summary</p>
+          {totalTokens && (
+            <span className="text-[10px] font-mono text-muted/50">
+              {(totalTokens / 1000).toFixed(1)}K tokens
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted leading-relaxed">{synthesis.summary}</p>
       </div>
 
-      {(synthesis.critical?.length > 0 || synthesis.warnings?.length > 0 || synthesis.suggestions?.length > 0) && (
-        <div className="flex flex-wrap gap-1.5">
-          {synthesis.critical?.length    > 0 && <span className="badge-critical">{synthesis.critical.length} Critical</span>}
-          {synthesis.warnings?.length    > 0 && <span className="badge-warning">{synthesis.warnings.length} Warning</span>}
-          {synthesis.suggestions?.length > 0 && <span className="badge-suggestion">{synthesis.suggestions.length} Note</span>}
+      {total > 0 && (
+        <div className="space-y-2.5 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+          {conflictCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-amber-600 font-medium">Experts disagree</span>
+              <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                {conflictCount}
+              </span>
+            </div>
+          )}
+          {criticalCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted">Critical consensus</span>
+              <span className="badge-critical">{criticalCount}</span>
+            </div>
+          )}
+          {warningCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted">Warnings</span>
+              <span className="badge-warning">{warningCount}</span>
+            </div>
+          )}
+          {suggestionCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted">Notes</span>
+              <span className="badge-suggestion">{suggestionCount}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -86,13 +67,15 @@ type Tab = 'critical' | 'warning' | 'suggestion' | 'conflict'
 
 export function SynthesisIssuesPanel({ synthesis }: { synthesis: Synthesis }) {
   const tabs = ([
+    { id: 'conflict'   as Tab, label: 'Conflicts',   count: synthesis.conflicts?.length   ?? 0 },
     { id: 'critical'   as Tab, label: 'Criticals',   count: synthesis.critical?.length    ?? 0 },
     { id: 'warning'    as Tab, label: 'Warnings',    count: synthesis.warnings?.length    ?? 0 },
     { id: 'suggestion' as Tab, label: 'Suggestions', count: synthesis.suggestions?.length ?? 0 },
-    { id: 'conflict'   as Tab, label: 'Conflicts',   count: synthesis.conflicts?.length   ?? 0 },
   ] as const).filter(t => t.count > 0)
 
-  const [active, setActive] = useState<Tab>(tabs[0]?.id ?? 'critical')
+  // Default to Conflicts tab when conflicts exist, otherwise first tab
+  const defaultTab = tabs.find(t => t.id === 'conflict')?.id ?? tabs[0]?.id ?? 'critical'
+  const [active, setActive] = useState<Tab>(defaultTab as Tab)
 
   if (tabs.length === 0) return null
 
@@ -117,10 +100,9 @@ export function SynthesisIssuesPanel({ synthesis }: { synthesis: Synthesis }) {
           >
             {tab.label}
             <span className={clsx('text-xs px-1.5 py-0.5 rounded-full font-semibold', {
+              'bg-amber-50 text-amber-700':   tab.id === 'conflict' || tab.id === 'warning',
               'bg-red-50 text-red-600':       tab.id === 'critical',
-              'bg-amber-50 text-amber-700':   tab.id === 'warning',
               'bg-indigo-50 text-indigo-600': tab.id === 'suggestion',
-              'bg-subtle text-muted':         tab.id === 'conflict',
             })}>
               {tab.count}
             </span>
@@ -156,7 +138,7 @@ export function SynthesisIssuesPanel({ synthesis }: { synthesis: Synthesis }) {
       {active === 'conflict' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {synthesis.conflicts?.map((conflict, i) => (
-            <div key={i} className="card p-4">
+            <div key={i} className="card p-4" style={{ borderLeft: '3px solid rgb(217 119 6 / 0.6)' }}>
               <p className="text-sm font-semibold text-ink mb-3">{conflict.topic}</p>
               <div className="space-y-2">
                 {Object.entries(conflict.positions).map(([agent, position]) => (

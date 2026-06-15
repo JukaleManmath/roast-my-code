@@ -55,7 +55,7 @@ def synthesis_node(state: ReviewState) -> dict:
                 {'role': 'system', 'content': SYSTEM_PROMPT},
                 {'role': 'user',   'content': user_content},
             ],
-            max_tokens=4096,
+            max_tokens=1500,
             temperature=0.3,
         )
         verdict = _parse_synthesis(response.choices[0].message.content)

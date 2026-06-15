@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design tokens (RGB channels for Tailwind opacity support) ─── */
+/* ─── Design tokens ─── */
 :root {
   --canvas-rgb:   250 249 246;
   --surface-rgb:  255 255 255;
@@ -13,18 +13,6 @@
   --warning-rgb:  217 119 6;
   --info-rgb:     79 70 229;
   --border:       rgba(0, 0, 0, 0.08);
-}
-
-.dark {
-  --canvas-rgb:   10 10 10;
-  --surface-rgb:  18 18 18;
-  --ink-rgb:      240 240 240;
-  --muted-rgb:    161 161 161;
-  --subtle-rgb:   28 28 28;
-  --critical-rgb: 248 113 113;
-  --warning-rgb:  251 191 36;
-  --info-rgb:     129 140 248;
-  --border:       rgba(255, 255, 255, 0.08);
 }
 
 * { box-sizing: border-box; }
@@ -61,53 +49,6 @@ pre, code {
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgb(var(--ink-rgb) / 0.15); border-radius: 3px; }
-
-/* ─── Animated background orbs ─── */
-.hero-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  pointer-events: none;
-  animation: orb-float 12s ease-in-out infinite;
-}
-.hero-orb-orange {
-  width: 520px; height: 520px;
-  background: radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%);
-  top: -160px; left: 50%; transform: translateX(-60%);
-  animation-duration: 10s;
-}
-.hero-orb-indigo {
-  width: 380px; height: 380px;
-  background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
-  top: 60px; right: 5%;
-  animation-duration: 14s;
-  animation-delay: -4s;
-}
-@keyframes orb-float {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%       { transform: translateY(-24px) scale(1.04); }
-}
-.hero-orb-orange { animation-name: orb-float-center; }
-@keyframes orb-float-center {
-  0%, 100% { transform: translateX(-60%) translateY(0) scale(1); }
-  50%       { transform: translateX(-60%) translateY(-20px) scale(1.04); }
-}
-
-/* ─── Scroll fade-in ─── */
-.fade-up {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.fade-up.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-.fade-up.delay-1 { transition-delay: 0.1s; }
-.fade-up.delay-2 { transition-delay: 0.2s; }
-.fade-up.delay-3 { transition-delay: 0.3s; }
-.fade-up.delay-4 { transition-delay: 0.4s; }
-.fade-up.delay-5 { transition-delay: 0.5s; }
 
 @layer components {
   /* Container */
@@ -219,46 +160,4 @@ pre, code {
 @keyframes shimmer {
   from { background-position: -200% 0; }
   to   { background-position:  200% 0; }
-}
-
-/* ─── Page transitions (View Transitions API) ─── */
-@view-transition { navigation: auto; }
-::view-transition-old(root) {
-  animation: 180ms ease-out both page-out;
-}
-::view-transition-new(root) {
-  animation: 220ms ease-in both page-in;
-}
-@keyframes page-out {
-  to { opacity: 0; transform: translateY(-6px); }
-}
-@keyframes page-in {
-  from { opacity: 0; transform: translateY(6px); }
-}
-
-/* ─── Command palette ─── */
-[cmdk-input] { outline: none !important; box-shadow: none !important; }
-.cmdk-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgb(var(--ink-rgb) / 0.4);
-  backdrop-filter: blur(4px);
-  animation: fade-in 120ms ease;
-}
-.cmdk-dialog {
-  position: fixed; left: 50%; top: 30%; z-index: 201;
-  transform: translateX(-50%) translateY(-50%);
-  width: min(640px, calc(100vw - 2rem));
-  background: rgb(var(--surface-rgb));
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 24px 64px rgb(var(--ink-rgb) / 0.18);
-  overflow: hidden;
-  animation: cmdk-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes cmdk-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(calc(-50% - 12px)) scale(0.96); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(-50%) scale(1); }
-}
-@keyframes fade-in {
-  from { opacity: 0; } to { opacity: 1; }
 }

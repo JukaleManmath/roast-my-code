@@ -43,7 +43,7 @@ async function selectLanguage(user: ReturnType<typeof userEvent.setup>, lang: st
 }
 
 async function clickSubmit(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: /roast my code/i }))
+  await user.click(screen.getByRole('button', { name: /start review/i }))
 }
 
 // ── Tab rendering ─────────────────────────────────────────────────────────────

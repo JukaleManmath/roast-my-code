@@ -14,7 +14,7 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -26,8 +26,7 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
+      sessionStorage.removeItem('access_token')
     }
     const body = await res.json().catch(() => ({}))
     const message = Array.isArray(body)
@@ -122,7 +121,7 @@ export function submitFileReview(file: File, language?: string) {
   form.append('input_mode', 'file')
   if (language) form.append('language', language)
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null
   const headers: Record<string, string> = {}
   if (token) headers['Authorization'] = `Bearer ${token}`
 
@@ -163,7 +162,7 @@ export function saveReview(reviewId: string) {
 }
 
 export function getPdfUrl(reviewId: string) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null
   const qs = token ? `?token=${token}` : ''
   return `${API_BASE}/api/reviews/${reviewId}/pdf/${qs}`
 }

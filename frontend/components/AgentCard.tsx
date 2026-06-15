@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { clsx } from 'clsx'
 import { CheckCircle2, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import type { AgentResult } from '@/lib/api'
+import type { TokenUsage } from '@/lib/ws'
 
 const AGENT_META: Record<string, { label: string; description: string }> = {
   pragmatist: { label: 'Staff Backend Engineer',     description: 'Production concerns and real-world maintainability' },
@@ -17,9 +18,10 @@ interface AgentCardProps {
   name: string
   result?: AgentResult
   loading?: boolean
+  tokensUsed?: TokenUsage
 }
 
-export function AgentCard({ name, result, loading }: AgentCardProps) {
+export function AgentCard({ name, result, loading, tokensUsed }: AgentCardProps) {
   const [expanded, setExpanded] = useState(false)
   const meta = AGENT_META[name] ?? { label: name, description: '' }
   const done = !!result
@@ -42,8 +44,15 @@ export function AgentCard({ name, result, loading }: AgentCardProps) {
             <p className="text-sm font-semibold text-ink">{meta.label}</p>
             <p className="text-xs text-muted mt-0.5">{meta.description}</p>
           </div>
-          {loading && !done && <Loader2 size={15} className="text-muted animate-spin shrink-0 mt-0.5" />}
-          {done    && <CheckCircle2 size={15} className="text-ink/30 shrink-0 mt-0.5" />}
+          <div className="flex items-center gap-2 shrink-0">
+            {tokensUsed && (
+              <span className="text-[10px] text-muted/50 font-mono">
+                {(tokensUsed.total / 1000).toFixed(1)}K tok
+              </span>
+            )}
+            {loading && !done && <Loader2 size={15} className="text-muted animate-spin" />}
+            {done    && <CheckCircle2 size={15} className="text-ink/30" />}
+          </div>
         </div>
 
         {/* Skeleton */}

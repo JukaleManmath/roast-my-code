@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { viewTransitions: true },
   async rewrites() {
     return [
       {

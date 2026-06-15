@@ -81,8 +81,18 @@ class ReviewSubmitView(APIView):
             status=Review.Status.PENDING,
         )
 
-        # Dispatch Celery task (implemented in Step 8)
-        # Imported here to avoid circular import at module level
+        # Guard: check daily Groq token budget before queuing
+        from pipeline.agents.base import check_daily_token_budget
+        budget_ok, tokens_used_today = check_daily_token_budget()
+        if not budget_ok:
+            review.delete()
+            logger.warning('Daily token budget exhausted (%d tokens used)', tokens_used_today)
+            return Response(
+                {'error': "Today's review capacity has been reached. Please come back tomorrow."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # Dispatch Celery task (imported here to avoid circular import at module level)
         from worker.tasks import run_review_pipeline
         run_review_pipeline.delay(str(review.id))
 
